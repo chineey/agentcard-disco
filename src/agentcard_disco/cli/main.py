@@ -30,7 +30,7 @@ from agentcard_disco.parser import FetchError, ParseError, load
 from agentcard_disco.reporting.exporters import to_json, to_markdown, write_json, write_markdown
 from agentcard_disco.reporting.terminal import render_compare, render_report
 from agentcard_disco.scoring.engine import score as run_score
-from agentcard_disco.scoring.result import Grade
+
 
 _console = Console()
 _err_console = Console(stderr=True)

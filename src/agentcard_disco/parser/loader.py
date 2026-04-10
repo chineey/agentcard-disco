@@ -49,7 +49,7 @@ def _parse_dict(raw: dict[str, Any]) -> AgentCard:
     except ValidationError as exc:
         errors = exc.errors(include_url=False)
         summary = "; ".join(
-            f"{' -> '.join(str(l) for l in e['loc'])}: {e['msg']}"
+            f"{' -> '.join(str(loc) for loc in e['loc'])}: {e['msg']}"
             for e in errors
         )
         raise ParseError(
@@ -147,7 +147,7 @@ def load_from_url(
                 follow_redirects=follow_redirects,
                 headers=headers,
             )
-        except httpx.TimeoutException as exc:
+        except httpx.TimeoutException:
             last_exc = FetchError(f"Request timed out after {timeout}s: {candidate}")
             continue
         except httpx.RequestError as exc:
