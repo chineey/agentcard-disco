@@ -1,0 +1,19 @@
+{
+  "name": "My Agent",
+  "description": "Does stuff",
+  "url": "http://localhost:8000/",
+  "version": "1",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "do_thing",
+      "name": "Do Thing",
+      "description": "Does the thing",
+      "tags": [],
+      "examples": []
+    }
+  ]
+}

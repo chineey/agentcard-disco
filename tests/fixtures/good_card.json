@@ -1,0 +1,75 @@
+{
+  "name": "DataPulse Analytics Agent",
+  "description": "DataPulse is a specialist data analysis agent that ingests structured datasets (CSV, JSON, Parquet), runs statistical summaries, detects anomalies, and generates human-readable insight reports. Designed for integration in multi-agent financial and operational pipelines where downstream agents require clean, enriched data.",
+  "url": "https://api.datapulse.io/a2a/",
+  "version": "2.3.1",
+  "documentationUrl": "https://docs.datapulse.io/a2a",
+  "iconUrl": "https://static.datapulse.io/icon.png",
+  "provider": {
+    "organization": "DataPulse Labs",
+    "url": "https://datapulse.io"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true
+  },
+  "defaultInputModes": ["text/plain", "application/json", "text/csv"],
+  "defaultOutputModes": ["application/json", "text/markdown", "text/plain"],
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "description": "JWT token issued by DataPulse OAuth2 endpoint"
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "skills": [
+    {
+      "id": "statistical_summary",
+      "name": "Statistical Summary",
+      "description": "Computes descriptive statistics (mean, median, std deviation, percentiles, skewness) for any numeric dataset. Returns a structured JSON report with per-column breakdowns and a plain-language narrative.",
+      "tags": ["statistics", "data analysis", "summary", "numeric", "EDA", "exploratory"],
+      "examples": [
+        "Summarise the columns in this CSV",
+        "What are the key statistics for this dataset?",
+        "Run a statistical analysis on sales_data.json"
+      ],
+      "inputModes": ["text/csv", "application/json"],
+      "outputModes": ["application/json", "text/markdown"]
+    },
+    {
+      "id": "anomaly_detection",
+      "name": "Anomaly Detection",
+      "description": "Identifies outliers and anomalies in time-series or tabular data using IQR and Z-score methods. Flags rows that deviate significantly from expected distributions and returns annotated results.",
+      "tags": ["anomaly", "outlier", "detection", "time-series", "fraud", "quality"],
+      "examples": [
+        "Find anomalies in this transaction log",
+        "Which rows look like outliers?",
+        "Detect unusual values in my sensor data"
+      ],
+      "inputModes": ["text/csv", "application/json"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "insight_report",
+      "name": "Insight Report Generator",
+      "description": "Produces a structured Markdown report summarising dataset characteristics, key findings from statistical analysis, detected anomalies, and recommended next steps for downstream processing.",
+      "tags": ["report", "insight", "markdown", "summary", "documentation", "pipeline"],
+      "examples": [
+        "Generate an insight report for this dataset",
+        "Create a summary report I can share with stakeholders",
+        "Write a data quality report"
+      ],
+      "inputModes": ["application/json"],
+      "outputModes": ["text/markdown", "text/plain"]
+    }
+  ],
+  "additionalInterfaces": [
+    {
+      "url": "https://grpc.datapulse.io:443",
+      "transport": "gRPC",
+      "protocolVersion": "1.0.0"
+    }
+  ]
+}
