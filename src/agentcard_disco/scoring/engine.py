@@ -107,7 +107,7 @@ def _load_dotenv() -> None:
 
     # Try python-dotenv first
     try:
-        from dotenv import load_dotenv  # type: ignore
+        from dotenv import load_dotenv
         load_dotenv(dotenv_path=env_path, override=False)
         return
     except ImportError:

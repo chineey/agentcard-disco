@@ -209,8 +209,8 @@ def analyze(card: AgentCard) -> DimensionResult:
 
     # ── Guard: google-genai package ────────────────────────────────────────
     try:
-        from google import genai  # type: ignore
-        from google.genai import types  # type: ignore
+        from google import genai
+        from google.genai import types
     except ImportError:
         failures.append(
             "Package 'google-genai' is not installed. "

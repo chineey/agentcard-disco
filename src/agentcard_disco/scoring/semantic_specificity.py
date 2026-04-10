@@ -182,7 +182,7 @@ def analyze(card: AgentCard) -> DimensionResult:
         checks.append("Only one skill — no inter-skill similarity to penalise")
     else:
         max_similarity = 0.0
-        worst_pair: tuple[str, str] | None = None
+        worst_pair: tuple[str, str] = (skill_token_sets[0][0], skill_token_sets[1][0])
 
         for (id_a, set_a), (id_b, set_b) in combinations(skill_token_sets, 2):
             sim = _jaccard(set_a, set_b)

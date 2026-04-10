@@ -26,6 +26,7 @@ import click
 from rich.console import Console
 
 from agentcard_disco import __version__
+from agentcard_disco.models import AgentCard
 from agentcard_disco.parser import FetchError, ParseError, load
 from agentcard_disco.reporting.exporters import to_json, to_markdown, write_json, write_markdown
 from agentcard_disco.reporting.terminal import render_compare, render_report
@@ -38,7 +39,7 @@ _err_console = Console(stderr=True)
 
 # ── Shared utilities ───────────────────────────────────────────────────────
 
-def _load_or_exit(source: str):
+def _load_or_exit(source: str) -> "AgentCard":
     """Load an AgentCard from source, printing a friendly error and exiting on failure."""
     try:
         return load(source)
@@ -54,7 +55,7 @@ def _load_or_exit(source: str):
 
 @click.group()
 @click.version_option(__version__, prog_name="agentcard-disco")
-def cli():
+def cli() -> None:
     """
     \b
     agentcard-disco — Score and optimise A2A Agent Cards for discoverability.
@@ -129,7 +130,7 @@ def score(
     no_detail: bool,
     fail_under: int | None,
     deep: bool,
-):
+) -> None:
     """
     Score a single Agent Card and print a discoverability report.
 
@@ -223,7 +224,7 @@ def suggest(
     output_format: str,
     limit: int,
     deep: bool,
-):
+) -> None:
     """
     Print improvement suggestions for an Agent Card.
 
@@ -312,7 +313,7 @@ def suggest(
     show_default=True,
     help="Output format.",
 )
-def compare(sources: tuple[str, ...], output_format: str):
+def compare(sources: tuple[str, ...], output_format: str) -> None:
     """
     Compare two or more Agent Cards side-by-side.
 
