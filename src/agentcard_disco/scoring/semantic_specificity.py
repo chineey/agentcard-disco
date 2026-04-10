@@ -12,7 +12,6 @@ Checks:
 
 from __future__ import annotations
 
-import re
 import string
 from collections import Counter
 from itertools import combinations

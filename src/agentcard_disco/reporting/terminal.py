@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, TaskID
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
@@ -52,7 +51,7 @@ def _grade_panel_text(report: ScoreReport) -> Text:
     t.append(f"  Source: {report.source}\n", style="dim")
     t.append(f"\n  Score: {report.total_score:.1f} / {report.max_total:.0f}  ", style="")
     t.append(f"({report.percentage:.0f}%)", style="dim")
-    t.append(f"   Grade: ", style="")
+    t.append("   Grade: ", style="")
     t.append(f" {grade.value} ", style=f"reverse {style}")
     if report.ai_enhanced:
         t.append("   🤖 AI-enhanced", style="dim")
@@ -199,7 +198,7 @@ def render_report(
         )
     elif report.grade in (Grade.A, Grade.B):
         con.print(
-            f"  [green]✓ This card is ready to publish to an A2A registry.[/green]"
+            "  [green]✓ This card is ready to publish to an A2A registry.[/green]"
         )
     con.print()
 

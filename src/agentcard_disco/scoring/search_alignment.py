@@ -15,7 +15,6 @@ Checks:
 
 from __future__ import annotations
 
-import re
 import string
 
 from agentcard_disco.models import AgentCard
