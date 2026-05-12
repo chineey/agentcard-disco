@@ -6,6 +6,7 @@ Start the server:
     uvicorn server.main:app --host 0.0.0.0 --port 8000       # prod
 """
 
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -22,6 +23,8 @@ from server.register import router as register_router
 # Environment — load .env before anything else reads os.environ
 # ---------------------------------------------------------------------------
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
 
 _REQUIRED = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]
 for _var in _REQUIRED:

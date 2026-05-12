@@ -1,22 +1,14 @@
 """
 server/register.py — API key self-service registration.
-
-Flow:
-  1. User POSTs their email to POST /v1/register
-  2. Server generates a random key, hashes it, stores hash in Supabase
-  3. Server emails the raw key to the user via Resend
-  4. Raw key is never stored anywhere — only the hash
-
-One key per email. If the email already has an active key, we resend it
-by revoking the old one and issuing a fresh key.
 """
 
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import secrets
-from functools import lru_cache
+import traceback
 
 import httpx
 from fastapi import APIRouter, HTTPException, status
@@ -25,17 +17,13 @@ from pydantic import BaseModel, EmailStr
 from server.auth import _get_supabase
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _RESEND_API_URL = "https://api.resend.com/emails"
-_KEY_PREFIX = "acd_"   # makes keys recognisable: acd_<32 random hex chars>
+_KEY_PREFIX = "acd_"
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _generate_raw_key() -> str:
-    """Generate a random, prefixed API key."""
     return _KEY_PREFIX + secrets.token_hex(32)
 
 
@@ -44,7 +32,6 @@ def _hash_key(raw_key: str) -> str:
 
 
 async def _send_key_email(to_email: str, raw_key: str) -> None:
-    """Send the raw API key to the user via Resend."""
     resend_key = os.environ.get("RESEND_API_KEY")
     from_email = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
 
@@ -95,10 +82,6 @@ X-API-Key: {raw_key}</pre>
         )
 
 
-# ---------------------------------------------------------------------------
-# Request model
-# ---------------------------------------------------------------------------
-
 class RegisterRequest(BaseModel):
     email: EmailStr
 
@@ -109,40 +92,51 @@ class RegisterRequest(BaseModel):
     }
 
 
-# ---------------------------------------------------------------------------
-# POST /v1/register
-# ---------------------------------------------------------------------------
-
 @router.post("/register", tags=["Auth"])
 async def register(payload: RegisterRequest):
     """
-    Request a free API key.
-
-    Supply an email address. A fresh key will be generated, stored
-    (as a hash only), and emailed to you. One active key per email —
-    calling this again revokes the previous key and issues a new one.
+    Request a free API key. Supply an email — a key will be generated,
+    stored as a hash in Supabase, and emailed to you.
     """
-    supabase = _get_supabase()
-    email = payload.email.lower().strip()
+    try:
+        supabase = _get_supabase()
+        email = payload.email.lower().strip()
 
-    # Revoke any existing key for this email so there's only ever one active key
-    supabase.table("api_keys").update({"is_active": False}).eq("owner", email).execute()
+        logger.info(f"Register request for: {email}")
 
-    # Generate and store the new key
-    raw_key = _generate_raw_key()
-    key_hash = _hash_key(raw_key)
+        # Revoke any existing key for this email
+        supabase.table("api_keys").update({"is_active": False}).eq("owner", email).execute()
 
-    supabase.table("api_keys").insert({
-        "key_hash": key_hash,
-        "owner": email,
-        "tier": "free",
-        "is_active": True,
-    }).execute()
+        # Generate and store the new key
+        raw_key = _generate_raw_key()
+        key_hash = _hash_key(raw_key)
 
-    # Email the raw key — only time it ever leaves the server
-    await _send_key_email(email, raw_key)
+        supabase.table("api_keys").insert({
+            "key_hash": key_hash,
+            "owner": email,
+            "tier": "free",
+            "is_active": True,
+        }).execute()
 
-    return {
-        "message": "API key sent — check your inbox.",
-        "email": email,
-    }
+        logger.info(f"Key stored for: {email}, sending email...")
+
+        # Email the raw key
+        await _send_key_email(email, raw_key)
+
+        logger.info(f"Email sent successfully to: {email}")
+
+        return {
+            "message": "API key sent — check your inbox.",
+            "email": email,
+        }
+
+    except HTTPException:
+        raise  # re-raise FastAPI exceptions as-is
+
+    except Exception as e:
+        # Log the full traceback so it shows up in Render logs
+        logger.error(f"Register failed for {payload.email}:\n{traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}",
+        )
