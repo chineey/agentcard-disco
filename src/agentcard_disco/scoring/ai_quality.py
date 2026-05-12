@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from typing import Any
 
@@ -182,8 +183,8 @@ def analyze(card: AgentCard) -> DimensionResult:
     deterministically in Python.
 
     Returns 0-score DimensionResult with a warning if:
-      - OPENAI_API_KEY is missing / placeholder
-      - openai package is not installed
+      - GEMINI_API_KEY is missing / placeholder
+      - google-genai package is not installed
       - API call fails
       - Response cannot be parsed
     """
@@ -247,10 +248,27 @@ def analyze(card: AgentCard) -> DimensionResult:
             break  # success — exit retry loop
         except Exception as exc:
             last_exc = exc
+            err_str = str(exc)
+
+            # Handle rate limits (429) specifically by respecting the retryDelay hint
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                # Extract suggested delay (e.g., '45s') if present in the error metadata
+                match = re.search(r"retryDelay':\s*'(\d+)s'", err_str)
+                wait_secs = int(match.group(1)) + 1 if match else 10
+                
+                if attempt < 2:
+                    time.sleep(wait_secs)
+                    continue
+
             if attempt < 2:
                 time.sleep(2 ** attempt)  # 1s, 2s backoff
     else:
-        failures.append(f"AI API call failed: {last_exc}")
+        err_msg = str(last_exc)
+        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+            failures.append("AI Quality analysis skipped: Gemini API quota exceeded (Rate Limit).")
+        else:
+            failures.append(f"AI API call failed: {last_exc}")
+
         return DimensionResult(
             name="AI Quality",
             score=0.0,

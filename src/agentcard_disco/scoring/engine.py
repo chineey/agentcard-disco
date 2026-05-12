@@ -9,7 +9,7 @@ Tier 1 (always, no dependencies):
     ─────────────────────────────────
     Tier 1 total:          0-100 pts   (deterministic, offline, instant)
 
-Tier 2 (opt-in via --deep, requires OPENAI_API_KEY):
+Tier 2 (opt-in via --deep, requires GEMINI_API_KEY):
     ai_quality             0-20 pts   (AI-assisted, reads from .env)
 
 When --deep is used the raw totals become 0-120 pts but percentage and

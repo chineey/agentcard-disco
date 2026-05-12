@@ -66,7 +66,7 @@ def cli() -> None:
       • Search Alignment     (0-20 pts)
       • Completeness         (0-20 pts)
 
-    Tier 2 (add --deep, requires ANTHROPIC_API_KEY in .env):
+    Tier 2 (add --deep, requires GEMINI_API_KEY in .env):
       • AI Quality           (0-20 pts)
 
     Tier 1 total: 100 pts.  With --deep: up to 120 pts.  Graded A–F.
