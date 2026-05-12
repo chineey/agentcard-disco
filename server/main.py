@@ -15,7 +15,8 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
 from server.auth import limiter
-from server.score import router as score_router   # file is server/score.py
+from server.score import router as score_router
+from server.register import router as register_router
 
 # ---------------------------------------------------------------------------
 # Environment — load .env before anything else reads os.environ
@@ -79,6 +80,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 app.include_router(score_router, prefix="/v1")
+app.include_router(register_router, prefix="/v1")
 
 
 # ---------------------------------------------------------------------------
