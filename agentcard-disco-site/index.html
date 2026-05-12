@@ -1234,7 +1234,7 @@ agentcard-disco score card.json <span class="f">--deep</span></pre>
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/register`, {
+      const res = await fetch(`${API_BASE}/v1/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
