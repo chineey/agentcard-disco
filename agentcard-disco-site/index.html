@@ -1242,8 +1242,8 @@ agentcard-disco score card.json <span class="f">--deep</span></pre>
 
       const data = await res.json().catch(() => ({}));
 
-      if (res.ok && data.api_key) {
-        showKeyReveal(data.api_key);
+      if (res.ok) {
+        showSuccess('API key sent — check your inbox.');
         return;
       }
 
