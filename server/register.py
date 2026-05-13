@@ -128,6 +128,7 @@ async def register(payload: RegisterRequest):
         return {
             "message": "API key sent — check your inbox.",
             "email": email,
+            "api_key": raw_key,  
         }
 
     except HTTPException:
