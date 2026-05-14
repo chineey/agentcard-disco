@@ -9,12 +9,16 @@ Tier 1 (always, no dependencies):
     ─────────────────────────────────
     Tier 1 total:          0-100 pts   (deterministic, offline, instant)
 
-Tier 2 (opt-in via --deep, requires GEMINI_API_KEY):
-    ai_quality             0-20 pts   (AI-assisted, reads from .env)
+Tier 2 (opt-in via --deep):
+    ai_quality             0-20 pts
 
-When --deep is used the raw totals become 0-120 pts but percentage and
-grade are still normalised over the full max_total — so the A–F scale
-is consistent whether or not AI analysis is enabled.
+    Two modes:
+    A) Via agentcard-disco API (recommended) — set up once with:
+           agentcard-disco auth YOUR_KEY
+       Gemini runs server-side; no local API key needed.
+
+    B) Local Gemini key — set GEMINI_API_KEY in .env.
+       Falls back to this automatically if no agentcard-disco key is saved.
 
 Usage:
     from agentcard_disco.scoring.engine import score
@@ -46,20 +50,25 @@ def score(
     *,
     source: str = "<unknown>",
     deep: bool = False,
+    _via_api: bool = False,
+    _api_key: str | None = None,
+    _api_base: str | None = None,
 ) -> ScoreReport:
     """
     Run all scoring analyzers against a validated AgentCard.
 
     Args:
-        card:   Validated AgentCard instance (from the parser).
-        source: File path or URL the card was loaded from (display only).
-        deep:   When True, also runs the Tier 2 AI quality analyzer.
-                Automatically loads GEMINI_API_KEY from .env if present.
+        card:      Validated AgentCard instance (from the parser).
+        source:    File path or URL the card was loaded from (display only).
+        deep:      When True, also runs the Tier 2 AI quality analyzer.
+        _via_api:  Internal flag — when True, Tier 2 runs via the hosted API.
+        _api_key:  agentcard-disco API key (used when _via_api=True).
+        _api_base: API base URL override (used when _via_api=True).
 
     Returns:
         ScoreReport aggregating all dimension results.
     """
-    if deep:
+    if deep and not _via_api:
         _load_dotenv()
 
     # ── Tier 1: heuristic analyzers (always run) ───────────────────────────
@@ -73,7 +82,13 @@ def score(
     # ── Tier 2: AI quality analyzer (--deep only) ──────────────────────────
     if deep:
         from agentcard_disco.scoring import ai_quality  # lazy import
-        dimensions.append(ai_quality.analyze(card))     # 0-20 pts
+        if _via_api and _api_key:
+            # Route through hosted API — no local Gemini key needed
+            api_base = _api_base or "https://agentcard-disco.onrender.com"
+            dimensions.append(ai_quality.analyze_via_api(card, _api_key, api_base))
+        else:
+            # Local Gemini key path
+            dimensions.append(ai_quality.analyze(card))
 
     return ScoreReport(
         card_name=card.name,
@@ -98,14 +113,12 @@ def _load_dotenv() -> None:
     """
     candidates = [
         pathlib.Path.cwd() / ".env",
-        # src/agentcard_disco/scoring/engine.py → go up 4 levels to project root
         pathlib.Path(__file__).parents[3] / ".env",
     ]
     env_path = next((p for p in candidates if p.exists()), None)
     if env_path is None:
         return
 
-    # Try python-dotenv first
     try:
         from dotenv import load_dotenv
         load_dotenv(dotenv_path=env_path, override=False)
@@ -113,7 +126,6 @@ def _load_dotenv() -> None:
     except ImportError:
         pass
 
-    # Fallback: minimal KEY=value parser
     try:
         with open(env_path, encoding="utf-8") as fh:
             for line in fh:

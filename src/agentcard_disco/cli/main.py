@@ -4,12 +4,15 @@ agentcard-disco CLI
 Entry point: `agentcard-disco` (defined in pyproject.toml)
 
 Commands:
+  auth     — Save your API key for --deep scoring (one-time setup)
   score    — Score a single Agent Card and print the full report
   suggest  — Print only improvement suggestions (pipe-friendly)
   compare  — Compare two or more Agent Cards side-by-side
 
 Examples:
+  agentcard-disco auth acd_your_key_here
   agentcard-disco score ./agent-card.json
+  agentcard-disco score ./card.json --deep
   agentcard-disco score https://api.example.com/.well-known/agent-card.json
   agentcard-disco score ./card.json --format json --output report.json
   agentcard-disco score ./card.json --format markdown --output report.md
@@ -26,6 +29,7 @@ import click
 from rich.console import Console
 
 from agentcard_disco import __version__
+from agentcard_disco.cli.config import get_api_base, get_api_key, save_api_key
 from agentcard_disco.models import AgentCard
 from agentcard_disco.parser import FetchError, ParseError, load
 from agentcard_disco.reporting.exporters import to_json, to_markdown, write_json, write_markdown
@@ -51,6 +55,38 @@ def _load_or_exit(source: str) -> "AgentCard":
         sys.exit(1)
 
 
+def _run_deep(card: AgentCard, source: str):
+    """
+    Run scoring with Tier-2 deep analysis.
+
+    Priority:
+    1. If user has configured an API key (via `auth`), use the hosted API.
+       No local GEMINI_API_KEY needed — Gemini runs server-side.
+    2. If GEMINI_API_KEY is set locally, use it directly.
+    3. Neither configured → show a helpful message and exit.
+    """
+    api_key = get_api_key()
+
+    if api_key:
+        _console.print("[dim]🤖  Running Tier 2 AI quality analysis via agentcard-disco API…[/dim]")
+        return run_score(card, source=source, deep=True, _via_api=True,
+                         _api_key=api_key, _api_base=get_api_base())
+
+    import os
+    if os.environ.get("GEMINI_API_KEY"):
+        _console.print("[dim]🤖  Running Tier 2 AI quality analysis (local Gemini key)…[/dim]")
+        return run_score(card, source=source, deep=True)
+
+    _err_console.print(
+        "\n[bold yellow]--deep requires an API key.[/bold yellow]\n\n"
+        "Get a free key at [link=https://agentcard-disco-web.onrender.com]"
+        "https://agentcard-disco-web.onrender.com[/link], then run:\n\n"
+        "  [bold]agentcard-disco auth YOUR_KEY[/bold]\n\n"
+        "Or set [bold]GEMINI_API_KEY[/bold] in your .env to use your own Gemini key.\n"
+    )
+    sys.exit(1)
+
+
 # ── CLI group ──────────────────────────────────────────────────────────────
 
 @click.group()
@@ -66,11 +102,35 @@ def cli() -> None:
       • Search Alignment     (0-20 pts)
       • Completeness         (0-20 pts)
 
-    Tier 2 (add --deep, requires GEMINI_API_KEY in .env):
+    Tier 2 (add --deep, requires API key or GEMINI_API_KEY):
       • AI Quality           (0-20 pts)
 
     Tier 1 total: 100 pts.  With --deep: up to 120 pts.  Graded A–F.
     """
+
+
+# ── auth command ───────────────────────────────────────────────────────────
+
+@cli.command()
+@click.argument("key", metavar="API_KEY")
+def auth(key: str) -> None:
+    """
+    Save your API key for --deep scoring (one-time setup).
+
+    Get a free key at https://agentcard-disco-web.onrender.com
+
+    \b
+    Example:
+      agentcard-disco auth acd_your_key_here
+    """
+    if not key.startswith("acd_"):
+        _err_console.print(
+            "[bold yellow]Warning:[/bold yellow] Key doesn't start with 'acd_'. "
+            "Make sure you're using your agentcard-disco key, not a Gemini key."
+        )
+
+    save_api_key(key)
+    _console.print(f"[bold green]✓[/bold green] API key saved. You can now use [bold]--deep[/bold] without any extra setup.")
 
 
 # ── score command ──────────────────────────────────────────────────────────
@@ -119,7 +179,7 @@ def cli() -> None:
     default=False,
     help=(
         "Enable Tier 2 AI quality analysis (+20 pts). "
-        "Requires GEMINI_API_KEY in .env and: pip install agentcard-disco[deep]"
+        "Requires a free API key (run: agentcard-disco auth YOUR_KEY)."
     ),
 )
 def score(
@@ -144,10 +204,12 @@ def score(
       agentcard-disco score ./card.json --format markdown -o report.md
       agentcard-disco score ./card.json --fail-under 70      # non-zero exit if grade < B
     """
-    if deep:
-        _console.print("[dim]🤖  Running Tier 2 AI quality analysis…[/dim]")
     card = _load_or_exit(source)
-    report = run_score(card, source=source, deep=deep)
+
+    if deep:
+        report = _run_deep(card, source)
+    else:
+        report = run_score(card, source=source, deep=False)
 
     if output_format == "terminal":
         render_report(
@@ -156,7 +218,6 @@ def score(
             show_suggestions=not no_suggestions,
         )
         if output_path:
-            # Also write markdown when --output is given with terminal format
             write_markdown(report, output_path)
             _console.print(f"[dim]Markdown report written to {output_path}[/dim]")
 
@@ -238,10 +299,13 @@ def suggest(
       agentcard-disco suggest ./card.json --priority high
       agentcard-disco suggest ./card.json --format json
     """
-    if deep:
-        _console.print("[dim]🤖  Running Tier 2 AI quality analysis…[/dim]")
     card = _load_or_exit(source)
-    report = run_score(card, source=source, deep=deep)
+
+    if deep:
+        report = _run_deep(card, source)
+    else:
+        report = run_score(card, source=source, deep=False)
+
     suggestions = report.all_suggestions
 
     # Filter

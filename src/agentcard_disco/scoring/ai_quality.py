@@ -349,3 +349,112 @@ def _field_hint(question_key: str) -> str:
         "card_coherent":         "name / skills[*].tags",
         "io_explained":          "description / skills[*].description",
     }.get(question_key, "—")
+
+
+# ── Remote deep scoring (via agentcard-disco API) ──────────────────────────
+
+def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionResult:
+    """
+    Run Tier-2 AI Quality scoring via the hosted API instead of calling
+    Gemini directly. Used when the user has configured an API key via
+    `agentcard-disco auth <key>` but has no local GEMINI_API_KEY.
+
+    Falls back to a 0-score result with a clear message on any failure.
+    """
+    import json as _json
+    import urllib.request
+    import urllib.error
+
+    checks: list[str]             = []
+    failures: list[str]           = []
+    suggestions: list[Suggestion] = []
+
+    card_dict = {
+        "name": card.name,
+        "description": card.description,
+        "skills": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "description": s.description,
+                "tags": s.tags,
+                "examples": s.examples,
+            }
+            for s in card.skills
+        ],
+    }
+
+    payload = _json.dumps({"card": card_dict, "deep": True}).encode()
+    url = f"{api_base.rstrip('/')}/v1/score"
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "X-API-Key": api_key,
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = _json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        failures.append(f"API deep scoring failed ({e.code}): {body[:200]}")
+        return DimensionResult(
+            name="AI Quality",
+            score=0.0,
+            max_score=_TOTAL_MAX,
+            checks=checks,
+            failures=failures,
+            suggestions=suggestions,
+        )
+    except Exception as exc:
+        failures.append(f"API deep scoring failed: {exc}")
+        return DimensionResult(
+            name="AI Quality",
+            score=0.0,
+            max_score=_TOTAL_MAX,
+            checks=checks,
+            failures=failures,
+            suggestions=suggestions,
+        )
+
+    # Extract the deep dimension result from the API response
+    deep = data.get("deep", {})
+    observations = deep.get("observations", {})
+    bonus_points  = deep.get("bonus_points", {})
+    bonus_total   = deep.get("bonus_total", 0.0)
+
+    for key, answer in observations.items():
+        label = key.replace("_", " ").capitalize()
+        pts   = bonus_points.get(key, 0)
+        if answer == "yes":
+            checks.append(f"{label} ✓")
+        elif answer == "partial":
+            failures.append(f"{label} (partial)")
+            suggestions.append(Suggestion(
+                dimension="AI Quality",
+                priority=2,
+                message=f"Improve: {label.lower()}.",
+                field="—",
+            ))
+        else:
+            failures.append(f"{label} — not met")
+            suggestions.append(Suggestion(
+                dimension="AI Quality",
+                priority=1,
+                message=f"Fix: {label.lower()}.",
+                field="—",
+            ))
+
+    return DimensionResult(
+        name="AI Quality",
+        score=round(float(bonus_total), 1),
+        max_score=_TOTAL_MAX,
+        checks=checks,
+        failures=failures,
+        suggestions=suggestions,
+    )
