@@ -1243,10 +1243,14 @@ agentcard-disco score card.json <span class="f">--deep</span></pre>
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        showSuccess('API key sent — check your inbox.');
+        const apiKey = data.api_key || data.key || '';
+        if (apiKey) {
+          showKeyReveal(apiKey);
+        } else {
+          showError('Key sent to your inbox — check your email.');
+        }
         return;
       }
-
       if (res.status === 409 || (data.detail && data.detail.toLowerCase().includes('already registered'))) {
         showError('This email is already registered. Check your records for your existing key.');
       } else if (res.status === 422 || res.status === 400) {
