@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentcard-disco"
-version = "0.1.0"
+version = "0.2.1"
 description = "Score and optimize A2A Agent Cards for discoverability"
 readme = "README.md"
 license = { text = "MIT" }
