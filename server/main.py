@@ -44,7 +44,7 @@ app = FastAPI(
         "REST API for scoring and optimising A2A protocol Agent Cards.\n\n"
         "**Authentication:** pass your API key in the `X-API-Key` header.\n\n"
         "**Tier 2 deep scoring:** set `deep: true` in the request body and "
-        "ensure `GEMINI_API_KEY` is set in the server environment."
+        "ensure `GROQ_API_KEY` is set in the server environment."
     ),
     version="1.0.0",
     docs_url="/docs",

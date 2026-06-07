@@ -30,12 +30,12 @@ Point mapping (Python, not the model):
 Speed
 ─────
 Single API call, ~200 token response, temperature=0.
-Typical latency: 1–3 seconds on gemini-2.0-flash.
+Typical latency: 1–3 seconds on openai/gpt-oss-20b via Groq.
 
 Environment / installation
 ──────────────────────────
-  • Requires GEMINI_API_KEY in the environment (loaded from .env).
-  • Requires the `google-genai` package:  pip install "agentcard-disco[deep]"
+  • Requires GROQ_API_KEY in the environment (loaded from .env).
+  • Requires the `groq` package:  pip install "agentcard-disco[deep]"
   • Any failure returns 0 pts with a clear warning — never crashes Tier 1.
 """
 
@@ -61,7 +61,7 @@ _POINTS: dict[str, dict[str, float]] = {
 
 _TOTAL_MAX = sum(pts["yes"] for pts in _POINTS.values())   # 20.0
 
-_DEFAULT_MODEL = "gemini-2.0-flash"
+_DEFAULT_MODEL = "openai/gpt-oss-20b"
 
 # ── Question definitions (human-readable, used in checks/failures output) ──
 _QUESTION_LABELS: dict[str, str] = {
@@ -183,8 +183,8 @@ def analyze(card: AgentCard) -> DimensionResult:
     deterministically in Python.
 
     Returns 0-score DimensionResult with a warning if:
-      - GEMINI_API_KEY is missing / placeholder
-      - google-genai package is not installed
+      - GROQ_API_KEY is missing / placeholder
+      - groq package is not installed
       - API call fails
       - Response cannot be parsed
     """
@@ -193,10 +193,10 @@ def analyze(card: AgentCard) -> DimensionResult:
     suggestions: list[Suggestion] = []
 
     # ── Guard: API key ─────────────────────────────────────────────────────
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = os.environ.get("GROQ_API_KEY", "").strip()
     if not api_key or api_key == "your-api-key-here":
         failures.append(
-            "GEMINI_API_KEY not configured — add your key to .env and "
+            "GROQ_API_KEY not configured — add your key to .env and "
             "re-run with --deep to enable AI quality analysis."
         )
         return DimensionResult(
@@ -208,13 +208,12 @@ def analyze(card: AgentCard) -> DimensionResult:
             suggestions=suggestions,
         )
 
-    # ── Guard: google-genai package ────────────────────────────────────────
+    # ── Guard: groq package ────────────────────────────────────────────────
     try:
-        from google import genai
-        from google.genai import types
+        from groq import Groq
     except ImportError:
         failures.append(
-            "Package 'google-genai' is not installed. "
+            "Package 'groq' is not installed. "
             "Run: pip install \"agentcard-disco[deep]\""
         )
         return DimensionResult(
@@ -228,34 +227,29 @@ def analyze(card: AgentCard) -> DimensionResult:
 
     # ── Single API call (with retry + backoff) ────────────────────────────
     model = os.environ.get("AGENTCARD_DISCO_MODEL", _DEFAULT_MODEL)
-    client = genai.Client(api_key=api_key)
+    client = Groq(api_key=api_key, timeout=20.0)
     raw_text = ""
     last_exc: Exception | None = None
 
     for attempt in range(3):
         try:
-            response = client.models.generate_content(
+            response = client.chat.completions.create(
                 model=model,
-                contents=_build_user_message(card),
-                config=types.GenerateContentConfig(
-                    system_instruction=_SYSTEM_PROMPT,
-                    temperature=0,          # determinism
-                    max_output_tokens=400,  # answers are short
-                    response_mime_type="application/json",  # guaranteed valid JSON
-                ),
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": _build_user_message(card)},
+                ],
+                temperature=0.0,
+                max_tokens=800,
             )
-            raw_text = response.text or ""
+            raw_text = getattr(response.choices[0].message, "content", "") or ""
             break  # success — exit retry loop
         except Exception as exc:
             last_exc = exc
             err_str = str(exc)
 
-            # Handle rate limits (429) specifically by respecting the retryDelay hint
-            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                # Extract suggested delay (e.g., '45s') if present in the error metadata
-                match = re.search(r"retryDelay':\s*'(\d+)s'", err_str)
-                wait_secs = int(match.group(1)) + 1 if match else 10
-                
+            if "429" in err_str or "RateLimitError" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                wait_secs = 10
                 if attempt < 2:
                     time.sleep(wait_secs)
                     continue
@@ -264,8 +258,8 @@ def analyze(card: AgentCard) -> DimensionResult:
                 time.sleep(2 ** attempt)  # 1s, 2s backoff
     else:
         err_msg = str(last_exc)
-        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-            failures.append("AI Quality analysis skipped: Gemini API quota exceeded (Rate Limit).")
+        if "429" in err_msg or "RateLimitError" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+            failures.append("AI Quality analysis skipped: Groq API quota exceeded (Rate Limit).")
         else:
             failures.append(f"AI API call failed: {last_exc}")
 
@@ -279,8 +273,13 @@ def analyze(card: AgentCard) -> DimensionResult:
         )
 
     # ── Parse ──────────────────────────────────────────────────────────────
+    # Strip markdown code fences some models wrap around JSON
+    clean = raw_text.strip()
+    if clean.startswith("```"):
+        clean = re.sub(r"^```[a-z]*\n?", "", clean)
+        clean = re.sub(r"\n?```$", "", clean.strip())
     try:
-        data: dict[str, Any] = json.loads(raw_text)
+        data: dict[str, Any] = json.loads(clean)
     except json.JSONDecodeError as exc:
         failures.append(f"AI response could not be parsed: {exc}")
         return DimensionResult(
@@ -356,8 +355,8 @@ def _field_hint(question_key: str) -> str:
 def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionResult:
     """
     Run Tier-2 AI Quality scoring via the hosted API instead of calling
-    Gemini directly. Used when the user has configured an API key via
-    `agentcard-disco auth <key>` but has no local GEMINI_API_KEY.
+    Groq directly. Used when the user has configured an API key via
+    `agentcard-disco auth <key>` but has no local GROQ_API_KEY.
 
     Falls back to a 0-score result with a clear message on any failure.
     """
@@ -369,20 +368,79 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
     failures: list[str]           = []
     suggestions: list[Suggestion] = []
 
-    card_dict = {
-        "name": card.name,
-        "description": card.description,
-        "skills": [
-            {
-                "id": s.id,
-                "name": s.name,
-                "description": s.description,
-                "tags": s.tags,
-                "examples": s.examples,
-            }
-            for s in card.skills
-        ],
-    }
+    # Build a minimal but valid AgentCard dict for server-side validation.
+    # Server requires: name, url, version, capabilities, skills
+    # Provide safe fallbacks for required fields (url, version) so the
+    # hosted API validator accepts the payload.
+    # Resolve url from: card.url -> documentationUrl -> provider.url -> generated placeholder
+    def _resolved_url(c: AgentCard) -> str:
+        if getattr(c, "url", None):
+            return str(c.url)
+        if getattr(c, "documentationUrl", None):
+            return str(c.documentationUrl)
+        if getattr(c, "provider", None) and getattr(c.provider, "url", None):
+            return str(c.provider.url)
+        # fallback generated URL using a slug of the name
+        name_slug = re.sub(r"[^a-z0-9]+", "-", (c.name or "agent").strip().lower())
+        name_slug = name_slug.strip("-") or "agent"
+        return f"https://example.invalid/{name_slug}"
+
+    # Prefer sending the fully-serialized AgentCard produced by the
+    # pydantic model (ensures all fields have expected shapes). Fall back
+    # to the manual minimal dict if serialization fails for any reason.
+    card_dict = None
+    if hasattr(card, "model_dump"):
+        try:
+            card_dict = card.model_dump()
+        except Exception:
+            card_dict = None
+
+    if card_dict is None:
+        card_dict = {
+            "name": card.name,
+            "url": _resolved_url(card),
+            "version": card.version if getattr(card, "version", None) is not None else "0.0.0",
+            "capabilities": {
+                "streaming": bool(getattr(card.capabilities, "streaming", False)),
+                "pushNotifications": bool(getattr(card.capabilities, "pushNotifications", False)),
+                "stateTransitionHistory": bool(getattr(card.capabilities, "stateTransitionHistory", False)),
+            } if getattr(card, "capabilities", None) is not None else {},
+            "description": card.description,
+            "provider": {
+                "organization": card.provider.organization,
+                "url": str(card.provider.url),
+            } if getattr(card, "provider", None) is not None else None,
+            "documentationUrl": str(card.documentationUrl) if getattr(card, "documentationUrl", None) is not None else None,
+            "iconUrl": str(card.iconUrl) if getattr(card, "iconUrl", None) is not None else None,
+            "protocolVersion": card.protocolVersion,
+            "skills": [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "description": s.description,
+                    "tags": s.tags,
+                    "examples": s.examples,
+                    "inputModes": s.inputModes,
+                    "outputModes": s.outputModes,
+                }
+                for s in card.skills
+            ],
+        }
+
+    # Ensure the card_dict is JSON-serializable: coerce AnyHttpUrl and
+    # other pydantic types to plain strings where needed.
+    def _make_serializable(o: Any):
+        if isinstance(o, dict):
+            return {k: _make_serializable(v) for k, v in o.items()}
+        if isinstance(o, (list, tuple)):
+            return [_make_serializable(v) for v in o]
+        # Primitive JSON types
+        if isinstance(o, (str, int, float, bool)) or o is None:
+            return o
+        # Fallback: convert to string (handles AnyHttpUrl and other pydantic types)
+        return str(o)
+
+    card_dict = _make_serializable(card_dict)
 
     payload = _json.dumps({"card": card_dict, "deep": True}).encode()
     url = f"{api_base.rstrip('/')}/v1/score"
@@ -397,30 +455,50 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
         method="POST",
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = _json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        failures.append(f"API deep scoring failed ({e.code}): {body[:200]}")
-        return DimensionResult(
-            name="AI Quality",
-            score=0.0,
-            max_score=_TOTAL_MAX,
-            checks=checks,
-            failures=failures,
-            suggestions=suggestions,
-        )
-    except Exception as exc:
-        failures.append(f"API deep scoring failed: {exc}")
-        return DimensionResult(
-            name="AI Quality",
-            score=0.0,
-            max_score=_TOTAL_MAX,
-            checks=checks,
-            failures=failures,
-            suggestions=suggestions,
-        )
+    # Attempt the HTTP POST with retries/backoff to tolerate transient
+    # network glitches or server slowness.
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                data = _json.loads(resp.read())
+            break
+        except urllib.error.HTTPError as e:
+            # Server responded with HTTP error (4xx/5xx). Include payload
+            # preview to help diagnose validation problems.
+            body = e.read().decode(errors="replace")
+            try:
+                payload_preview = payload.decode(errors="replace")[:1000]
+            except Exception:
+                payload_preview = "<unable to decode payload>"
+            failures.append(
+                f"API deep scoring failed ({e.code}): {body[:200]} -- payload: {payload_preview}"
+            )
+            return DimensionResult(
+                name="AI Quality",
+                score=0.0,
+                max_score=_TOTAL_MAX,
+                checks=checks,
+                failures=failures,
+                suggestions=suggestions,
+            )
+        except Exception as exc:
+            last_exc = exc
+            # Retry on transient network errors / timeouts
+            if attempt < 2:
+                backoff = 2 ** attempt
+                time.sleep(backoff)
+                continue
+            # final failure after retries
+            failures.append(f"API deep scoring failed: {exc}")
+            return DimensionResult(
+                name="AI Quality",
+                score=0.0,
+                max_score=_TOTAL_MAX,
+                checks=checks,
+                failures=failures,
+                suggestions=suggestions,
+            )
 
     # Extract the deep dimension result from the API response
     deep = data.get("deep", {})

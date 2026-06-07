@@ -59,10 +59,10 @@ def _partial_response() -> dict:
     }
 
 
-def _mock_genai_response(payload: dict):
-    """Build a mock google-genai response object."""
+def _mock_groq_response(payload: dict):
+    """Build a mock groq chat completion response object."""
     mock_response = MagicMock()
-    mock_response.text = json.dumps(payload)
+    mock_response.choices = [MagicMock(message=MagicMock(content=json.dumps(payload)))]
     return mock_response
 
 
@@ -70,14 +70,14 @@ def _mock_genai_response(payload: dict):
 
 class TestMissingApiKey:
     def test_missing_key_returns_zero(self, monkeypatch):
-        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
         card = _make_card()
         result = ai_quality.analyze(card)
         assert result.score == 0.0
-        assert any("GEMINI_API_KEY" in f for f in result.failures)
+        assert any("GROQ_API_KEY" in f for f in result.failures)
 
     def test_placeholder_key_returns_zero(self, monkeypatch):
-        monkeypatch.setenv("GEMINI_API_KEY", "your-api-key-here")
+        monkeypatch.setenv("GROQ_API_KEY", "your-api-key-here")
         card = _make_card()
         result = ai_quality.analyze(card)
         assert result.score == 0.0
@@ -87,26 +87,25 @@ class TestMissingApiKey:
 
 class TestMissingPackage:
     def test_import_error_returns_zero(self, monkeypatch):
-        monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
-        with patch.dict("sys.modules", {"google": None, "google.genai": None, "google.genai.types": None}):
+        monkeypatch.setenv("GROQ_API_KEY", "fake-key")
+        with patch.dict("sys.modules", {"groq": None}):
             card = _make_card()
             result = ai_quality.analyze(card)
         assert result.score == 0.0
-        assert any("google-genai" in f for f in result.failures)
+        assert any("groq" in f for f in result.failures)
 
 
 # ── Tests: successful API call ─────────────────────────────────────────────
 
 class TestSuccessfulCall:
     def _run(self, monkeypatch, payload: dict) -> "ai_quality.DimensionResult":
-        monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+        monkeypatch.setenv("GROQ_API_KEY", "fake-key")
         mock_client = MagicMock()
-        mock_client.models.generate_content.return_value = _mock_genai_response(payload)
+        mock_client.chat.completions.create.return_value = _mock_groq_response(payload)
 
-        with patch("google.genai.Client", return_value=mock_client):
-            with patch("google.genai.types"):
-                card = _make_card()
-                return ai_quality.analyze(card)
+        with patch("groq.Groq", return_value=mock_client):
+            card = _make_card()
+            return ai_quality.analyze(card)
 
     def test_all_yes_gives_max_score(self, monkeypatch):
         result = self._run(monkeypatch, _good_response())
@@ -145,40 +144,37 @@ class TestSuccessfulCall:
 
 class TestApiFailure:
     def test_api_exception_returns_zero(self, monkeypatch):
-        monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+        monkeypatch.setenv("GROQ_API_KEY", "fake-key")
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception("connection error")
+        mock_client.chat.completions.create.side_effect = Exception("connection error")
 
-        with patch("google.genai.Client", return_value=mock_client):
-            with patch("google.genai.types"):
-                result = ai_quality.analyze(_make_card())
+        with patch("groq.Groq", return_value=mock_client):
+            result = ai_quality.analyze(_make_card())
 
         assert result.score == 0.0
         assert any("AI API call failed" in f for f in result.failures)
 
     def test_invalid_json_response_returns_zero(self, monkeypatch):
-        monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+        monkeypatch.setenv("GROQ_API_KEY", "fake-key")
         mock_response = MagicMock()
-        mock_response.text = "not valid json {"
+        mock_response.choices = [MagicMock(message=MagicMock(content="not valid json {"))]
         mock_client = MagicMock()
-        mock_client.models.generate_content.return_value = mock_response
+        mock_client.chat.completions.create.return_value = mock_response
 
-        with patch("google.genai.Client", return_value=mock_client):
-            with patch("google.genai.types"):
-                result = ai_quality.analyze(_make_card())
+        with patch("groq.Groq", return_value=mock_client):
+            result = ai_quality.analyze(_make_card())
 
         assert result.score == 0.0
         assert any("could not be parsed" in f for f in result.failures)
 
     def test_missing_keys_in_response_defaults_to_no(self, monkeypatch):
         """Partial/missing keys in the JSON should default to 'no', not crash."""
-        monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
+        monkeypatch.setenv("GROQ_API_KEY", "fake-key")
         mock_client = MagicMock()
-        mock_client.models.generate_content.return_value = _mock_genai_response({})
+        mock_client.chat.completions.create.return_value = _mock_groq_response({})
 
-        with patch("google.genai.Client", return_value=mock_client):
-            with patch("google.genai.types"):
-                result = ai_quality.analyze(_make_card())
+        with patch("groq.Groq", return_value=mock_client):
+            result = ai_quality.analyze(_make_card())
 
         assert result.score == 0.0  # all defaulted to 'no'
 

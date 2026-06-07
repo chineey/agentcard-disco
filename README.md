@@ -36,11 +36,12 @@ pip install "agentcard-disco[deep]"
 ```bash
 # Score a local card
 agentcard-disco score ./agent-card.json
+agentcard-disco score ./tests/fixtures/good_card.json --deep
 
 # Score from a URL
 agentcard-disco score https://api.example.com/.well-known/agent-card.json
 
-# + AI quality analysis (requires GEMINI_API_KEY in .env)
+# + AI quality analysis (requires GROQ_API_KEY in .env)
 agentcard-disco score ./agent-card.json --deep
 
 # Export report as JSON or Markdown
@@ -67,7 +68,7 @@ agentcard-disco compare ./v1.json ./v2.json
 | Semantic Specificity | 0–30 | Filler-word ratio, skill distinctness, action-verb density |
 | Search Alignment | 0–20 | Tag and keyword coverage vs A2A registry query vocabulary |
 | Completeness | 0–20 | SemVer, capabilities, auth declaration, protocol version |
-| AI Quality *(--deep)* | 0–20 | Categorical quality judgments via Gemini |
+| AI Quality *(--deep)* | 0–20 | Categorical quality judgments via Groq |
 
 **Grade scale:**
 
@@ -84,11 +85,10 @@ agentcard-disco compare ./v1.json ./v2.json
 ## AI scoring setup (`--deep`)
 
 1. Install the deep extra: `pip install "agentcard-disco[deep]"`
-2. Get a free Gemini API key at https://aistudio.google.com/app/apikey
-3. Add it to a `.env` file in your working directory:
+2. Add your Groq API key to a `.env` file in your working directory:
 
 ```env
-GEMINI_API_KEY="AIza..."
+GROQ_API_KEY="gsk_your_key_here"
 ```
 
 4. Run with `--deep`:

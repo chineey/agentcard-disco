@@ -32,7 +32,7 @@ class CardPayload(BaseModel):
     """Supply the card either as an inline JSON object OR a URL — not both."""
     card: Optional[dict[str, Any]] = Field(None, description="Inline AgentCard JSON object.")
     url: Optional[str] = Field(None, description="http(s):// URL to fetch the AgentCard from.")
-    deep: bool = Field(False, description="Enable Tier-2 AI quality analysis (requires GEMINI_API_KEY).")
+    deep: bool = Field(False, description="Enable Tier-2 AI quality analysis (requires GROQ_API_KEY).")
 
     model_config = {
         "json_schema_extra": {

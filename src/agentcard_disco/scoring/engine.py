@@ -15,9 +15,9 @@ Tier 2 (opt-in via --deep):
     Two modes:
     A) Via agentcard-disco API (recommended) — set up once with:
            agentcard-disco auth YOUR_KEY
-       Gemini runs server-side; no local API key needed.
+       Groq runs server-side; no local API key needed.
 
-    B) Local Gemini key — set GEMINI_API_KEY in .env.
+    B) Local Groq key — set GROQ_API_KEY in .env.
        Falls back to this automatically if no agentcard-disco key is saved.
 
 Usage:
@@ -83,11 +83,11 @@ def score(
     if deep:
         from agentcard_disco.scoring import ai_quality  # lazy import
         if _via_api and _api_key:
-            # Route through hosted API — no local Gemini key needed
+            # Route through hosted API — no local Groq key needed
             api_base = _api_base or "https://agentcard-disco.onrender.com"
             dimensions.append(ai_quality.analyze_via_api(card, _api_key, api_base))
         else:
-            # Local Gemini key path
+            # Local Groq key path
             dimensions.append(ai_quality.analyze(card))
 
     return ScoreReport(
@@ -121,7 +121,7 @@ def _load_dotenv() -> None:
 
     try:
         from dotenv import load_dotenv
-        load_dotenv(dotenv_path=env_path, override=False)
+        load_dotenv(dotenv_path=env_path, override=True)
         return
     except ImportError:
         pass
@@ -135,7 +135,7 @@ def _load_dotenv() -> None:
                 key, _, value = line.partition("=")
                 key   = key.strip()
                 value = value.strip().strip('"').strip("'")
-                if key and key not in os.environ:
+                if key:
                     os.environ[key] = value
     except OSError:
         pass

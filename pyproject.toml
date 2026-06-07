@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentcard-disco"
-version = "0.2.1"
+version = "0.2.2"
 description = "Score and optimize A2A Agent Cards for discoverability"
 readme = "README.md"
 license = { text = "MIT" }
@@ -31,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 # Install with: pip install "agentcard-disco[deep]"
 deep = [
-    "google-genai>=1.0",
+    "groq>=1.4.0",
 ]
 
 [project.scripts]

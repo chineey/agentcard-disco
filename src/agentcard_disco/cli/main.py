@@ -60,29 +60,30 @@ def _run_deep(card: AgentCard, source: str):
     Run scoring with Tier-2 deep analysis.
 
     Priority:
-    1. If user has configured an API key (via `auth`), use the hosted API.
-       No local GEMINI_API_KEY needed — Gemini runs server-side.
-    2. If GEMINI_API_KEY is set locally, use it directly.
+    1. If GROQ_API_KEY is set locally, use it directly (fastest, no server hop).
+    2. If user has configured an API key (via `auth`), use the hosted API.
     3. Neither configured → show a helpful message and exit.
     """
-    api_key = get_api_key()
+    import os
+    from agentcard_disco.scoring.engine import _load_dotenv
+    _load_dotenv()
 
+    if os.environ.get("GROQ_API_KEY"):
+        _console.print("[dim]🤖  Running Tier 2 AI quality analysis (local Groq key)…[/dim]")
+        return run_score(card, source=source, deep=True)
+
+    api_key = get_api_key()
     if api_key:
         _console.print("[dim]🤖  Running Tier 2 AI quality analysis via agentcard-disco API…[/dim]")
         return run_score(card, source=source, deep=True, _via_api=True,
                          _api_key=api_key, _api_base=get_api_base())
-
-    import os
-    if os.environ.get("GEMINI_API_KEY"):
-        _console.print("[dim]🤖  Running Tier 2 AI quality analysis (local Gemini key)…[/dim]")
-        return run_score(card, source=source, deep=True)
 
     _err_console.print(
         "\n[bold yellow]--deep requires an API key.[/bold yellow]\n\n"
         "Get a free key at [link=https://agentcard-disco-web.onrender.com]"
         "https://agentcard-disco-web.onrender.com[/link], then run:\n\n"
         "  [bold]agentcard-disco auth YOUR_KEY[/bold]\n\n"
-        "Or set [bold]GEMINI_API_KEY[/bold] in your .env to use your own Gemini key.\n"
+        "Or set [bold]GROQ_API_KEY[/bold] in your .env to use your own Groq key.\n"
     )
     sys.exit(1)
 
@@ -102,7 +103,7 @@ def cli() -> None:
       • Search Alignment     (0-20 pts)
       • Completeness         (0-20 pts)
 
-    Tier 2 (add --deep, requires API key or GEMINI_API_KEY):
+    Tier 2 (add --deep, requires API key or GROQ_API_KEY):
       • AI Quality           (0-20 pts)
 
     Tier 1 total: 100 pts.  With --deep: up to 120 pts.  Graded A–F.
@@ -126,7 +127,7 @@ def auth(key: str) -> None:
     if not key.startswith("acd_"):
         _err_console.print(
             "[bold yellow]Warning:[/bold yellow] Key doesn't start with 'acd_'. "
-            "Make sure you're using your agentcard-disco key, not a Gemini key."
+            "Make sure you're using your agentcard-disco key, not a Groq key."
         )
 
     save_api_key(key)
