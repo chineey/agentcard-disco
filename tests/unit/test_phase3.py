@@ -26,7 +26,9 @@ MINIMAL_CARD = str(FIXTURES / "minimal_card.json")
 
 class TestJsonExporter:
     def _report(self, fixture: str):
-        card = AgentCard.model_validate(json.loads(Path(FIXTURES / fixture).read_text()))
+        card = AgentCard.model_validate(
+            json.loads(Path(FIXTURES / fixture).read_text(encoding="utf-8"))
+        )
         return score(card, source=fixture)
 
     def test_json_is_valid(self):
@@ -75,7 +77,9 @@ class TestJsonExporter:
 
 class TestMarkdownExporter:
     def _report(self, fixture: str):
-        card = AgentCard.model_validate(json.loads(Path(FIXTURES / fixture).read_text()))
+        card = AgentCard.model_validate(
+            json.loads(Path(FIXTURES / fixture).read_text(encoding="utf-8"))
+        )
         return score(card, source=fixture)
 
     def test_markdown_contains_card_name(self):
@@ -231,11 +235,24 @@ class TestCompareCommand:
         assert result.exit_code == 0
 
 
-# ── CLI: version ───────────────────────────────────────────────────────────
+# ── CLI: version & auth ────────────────────────────────────────────────────
 
 class TestVersion:
     def test_version_flag(self):
+        from agentcard_disco import __version__
         runner = CliRunner()
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.output
+        assert __version__ in result.output
+
+
+class TestAuthCommand:
+    def test_auth_saves_key(self, tmp_path, monkeypatch):
+        from agentcard_disco.cli import config
+        monkeypatch.setattr(config, "_CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(config, "_CONFIG_FILE", tmp_path / "config.json")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["auth", "acd_test_key_123"])
+        assert result.exit_code == 0
+        assert config.get_api_key() == "acd_test_key_123"

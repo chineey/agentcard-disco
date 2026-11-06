@@ -958,7 +958,7 @@
             <span class="line"><span class="t-sep">  ─────────────────────────────────────</span></span>
             <span class="line"><span class="t-label">  Total Score          </span><span class="t-total">86 / 100</span><span class="t-sep">  ◆ </span><span class="t-val-hi">Excellent</span></span>
             <span class="line">&nbsp;</span>
-            <span class="line"><span class="t-comment">  ↳ 3 suggestions available. Run --suggest</span></span>
+            <span class="line"><span class="t-comment">  ↳ 3 suggestions available. Run: agentcard-disco suggest ./agent-card.json</span></span>
           </div>
         </div>
       </div>
@@ -1116,8 +1116,8 @@
               Store this key safely — it won't be shown again.
             </div>
             <div class="key-usage-label">Usage</div>
-            <pre style="font-size:12px;line-height:1.7;"><span class="c"># Set as environment variable</span>
-export AGENTCARD_API_KEY=<span id="key-in-code" style="color:var(--accent)">acd_sk_...</span>
+            <pre style="font-size:12px;line-height:1.7;"><span class="c"># Save key once via CLI</span>
+agentcard-disco auth <span id="key-in-code" style="color:var(--accent)">acd_...</span>
 
 <span class="c"># Then use deep scoring</span>
 agentcard-disco score card.json <span class="f">--deep</span></pre>

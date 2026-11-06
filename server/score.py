@@ -37,7 +37,21 @@ class CardPayload(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "card": {"name": "My Agent", "description": "Summarises sales data from CSV files."},
+                "card": {
+                    "name": "My Agent",
+                    "url": "https://example.com/a2a",
+                    "version": "1.0.0",
+                    "description": "Summarises sales data from CSV files.",
+                    "capabilities": {"streaming": False, "pushNotifications": False},
+                    "skills": [
+                        {
+                            "id": "summarise_sales",
+                            "name": "Summarise Sales",
+                            "description": "Computes summary statistics from CSV sales data.",
+                            "tags": ["csv", "sales", "summary"],
+                        }
+                    ],
+                },
                 "deep": False,
             }
         }

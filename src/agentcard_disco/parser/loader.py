@@ -17,6 +17,7 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
+from agentcard_disco import __version__
 from agentcard_disco.models import AgentCard
 
 
@@ -129,7 +130,7 @@ def load_from_url(
     """
     headers = {
         "Accept": "application/json",
-        "User-Agent": "agentcard-disco/0.1.0 (https://github.com/chinemeze/agentcard-disco)",
+        "User-Agent": f"agentcard-disco/{__version__} (https://github.com/chinemeze/agentcard-disco)",
     }
 
     candidates = [url]

@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
+from agentcard_disco import __version__
 from agentcard_disco.scoring.result import ScoreReport
 
 
@@ -29,7 +30,7 @@ def to_json(report: ScoreReport, *, indent: int = 2) -> str:
     data = {
         "meta": {
             "tool": "agentcard-disco",
-            "version": "0.1.0",
+            "version": __version__,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },
         "card": {

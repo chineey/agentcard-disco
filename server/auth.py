@@ -98,7 +98,7 @@ async def verify_api_key(raw_key: Optional[str] = Security(_API_KEY_HEADER)) -> 
         )
 
     row = result.data
-    if not row:
+    if not isinstance(row, dict) or not row:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key.",

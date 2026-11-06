@@ -32,9 +32,15 @@ from agentcard_disco import __version__
 from agentcard_disco.cli.config import get_api_base, get_api_key, save_api_key
 from agentcard_disco.models import AgentCard
 from agentcard_disco.parser import FetchError, ParseError, load
-from agentcard_disco.reporting.exporters import to_json, to_markdown, write_json, write_markdown
+from agentcard_disco.reporting.exporters import (
+    to_json,
+    to_markdown,
+    write_json,
+    write_markdown,
+)
 from agentcard_disco.reporting.terminal import render_compare, render_report
 from agentcard_disco.scoring.engine import score as run_score
+from agentcard_disco.scoring.result import ScoreReport
 
 
 _console = Console()
@@ -55,7 +61,7 @@ def _load_or_exit(source: str) -> "AgentCard":
         sys.exit(1)
 
 
-def _run_deep(card: AgentCard, source: str):
+def _run_deep(card: AgentCard, source: str) -> ScoreReport:
     """
     Run scoring with Tier-2 deep analysis.
 
@@ -378,7 +384,14 @@ def suggest(
     show_default=True,
     help="Output format.",
 )
-def compare(sources: tuple[str, ...], output_format: str) -> None:
+@click.option(
+    "--deep",
+    "deep",
+    is_flag=True,
+    default=False,
+    help="Enable Tier 2 AI quality analysis (+20 pts) for all compared cards.",
+)
+def compare(sources: tuple[str, ...], output_format: str, deep: bool) -> None:
     """
     Compare two or more Agent Cards side-by-side.
 
@@ -398,7 +411,10 @@ def compare(sources: tuple[str, ...], output_format: str) -> None:
     reports = []
     for src in sources:
         card = _load_or_exit(src)
-        reports.append(run_score(card, source=src))
+        if deep:
+            reports.append(_run_deep(card, src))
+        else:
+            reports.append(run_score(card, source=src))
 
     if output_format == "json":
         import json as _json

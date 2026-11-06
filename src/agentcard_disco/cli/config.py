@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 _CONFIG_DIR  = Path.home() / ".agentcard-disco"
 _CONFIG_FILE = _CONFIG_DIR / "config.json"
@@ -21,15 +22,22 @@ def save_api_key(key: str) -> None:
     _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     config = _load_config()
     config["api_key"] = key
-    _CONFIG_FILE.write_text(json.dumps(config, indent=2))
+    _CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding="utf-8")
     # Restrict file permissions so other users can't read it
-    _CONFIG_FILE.chmod(0o600)
+    try:
+        _CONFIG_FILE.chmod(0o600)
+    except OSError:
+        pass
 
 
 def get_api_key() -> str | None:
     """Return the stored API key, or None if not configured."""
     config = _load_config()
-    return config.get("api_key") or os.environ.get("AGENTCARD_DISCO_API_KEY")
+    return (
+        config.get("api_key")
+        or os.environ.get("AGENTCARD_DISCO_API_KEY")
+        or os.environ.get("AGENTCARD_API_KEY")
+    )
 
 
 def get_api_base() -> str:
@@ -37,10 +45,11 @@ def get_api_base() -> str:
     return os.environ.get("AGENTCARD_DISCO_API_BASE", _API_BASE)
 
 
-def _load_config() -> dict:
+def _load_config() -> dict[str, Any]:
     if _CONFIG_FILE.exists():
         try:
-            return json.loads(_CONFIG_FILE.read_text())
+            data = json.loads(_CONFIG_FILE.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
         except Exception:
             return {}
     return {}

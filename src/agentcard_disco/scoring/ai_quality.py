@@ -374,11 +374,11 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
     # hosted API validator accepts the payload.
     # Resolve url from: card.url -> documentationUrl -> provider.url -> generated placeholder
     def _resolved_url(c: AgentCard) -> str:
-        if getattr(c, "url", None):
+        if c.url:
             return str(c.url)
-        if getattr(c, "documentationUrl", None):
+        if c.documentationUrl is not None:
             return str(c.documentationUrl)
-        if getattr(c, "provider", None) and getattr(c.provider, "url", None):
+        if c.provider is not None and c.provider.url:
             return str(c.provider.url)
         # fallback generated URL using a slug of the name
         name_slug = re.sub(r"[^a-z0-9]+", "-", (c.name or "agent").strip().lower())
@@ -388,7 +388,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
     # Prefer sending the fully-serialized AgentCard produced by the
     # pydantic model (ensures all fields have expected shapes). Fall back
     # to the manual minimal dict if serialization fails for any reason.
-    card_dict = None
+    card_dict: dict[str, Any] | None = None
     if hasattr(card, "model_dump"):
         try:
             card_dict = card.model_dump()
@@ -396,22 +396,24 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
             card_dict = None
 
     if card_dict is None:
+        provider = card.provider
+        caps = card.capabilities
         card_dict = {
             "name": card.name,
             "url": _resolved_url(card),
-            "version": card.version if getattr(card, "version", None) is not None else "0.0.0",
+            "version": card.version if card.version is not None else "0.0.0",
             "capabilities": {
-                "streaming": bool(getattr(card.capabilities, "streaming", False)),
-                "pushNotifications": bool(getattr(card.capabilities, "pushNotifications", False)),
-                "stateTransitionHistory": bool(getattr(card.capabilities, "stateTransitionHistory", False)),
-            } if getattr(card, "capabilities", None) is not None else {},
+                "streaming": bool(getattr(caps, "streaming", False)),
+                "pushNotifications": bool(getattr(caps, "pushNotifications", False)),
+                "stateTransitionHistory": bool(getattr(caps, "stateTransitionHistory", False)),
+            } if caps is not None else {},
             "description": card.description,
             "provider": {
-                "organization": card.provider.organization,
-                "url": str(card.provider.url),
-            } if getattr(card, "provider", None) is not None else None,
-            "documentationUrl": str(card.documentationUrl) if getattr(card, "documentationUrl", None) is not None else None,
-            "iconUrl": str(card.iconUrl) if getattr(card, "iconUrl", None) is not None else None,
+                "organization": provider.organization,
+                "url": str(provider.url),
+            } if provider is not None else None,
+            "documentationUrl": str(card.documentationUrl) if card.documentationUrl is not None else None,
+            "iconUrl": str(card.iconUrl) if card.iconUrl is not None else None,
             "protocolVersion": card.protocolVersion,
             "skills": [
                 {
@@ -429,7 +431,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
 
     # Ensure the card_dict is JSON-serializable: coerce AnyHttpUrl and
     # other pydantic types to plain strings where needed.
-    def _make_serializable(o: Any):
+    def _make_serializable(o: Any) -> Any:
         if isinstance(o, dict):
             return {k: _make_serializable(v) for k, v in o.items()}
         if isinstance(o, (list, tuple)):
@@ -457,7 +459,6 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
 
     # Attempt the HTTP POST with retries/backoff to tolerate transient
     # network glitches or server slowness.
-    last_exc: Exception | None = None
     for attempt in range(3):
         try:
             with urllib.request.urlopen(req, timeout=90) as resp:
@@ -483,7 +484,6 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
                 suggestions=suggestions,
             )
         except Exception as exc:
-            last_exc = exc
             # Retry on transient network errors / timeouts
             if attempt < 2:
                 backoff = 2 ** attempt
@@ -500,15 +500,43 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
                 suggestions=suggestions,
             )
 
-    # Extract the deep dimension result from the API response
+    # Extract the deep dimension result from the API response.
+    # Primary format: server/score.py returns `to_json(report)` with `dimensions` and `suggestions`.
+    dimensions = data.get("dimensions")
+    if isinstance(dimensions, list):
+        ai_dim = next(
+            (d for d in dimensions if isinstance(d, dict) and d.get("name") == "AI Quality"),
+            None,
+        )
+        if ai_dim is not None:
+            raw_suggestions = data.get("suggestions", [])
+            if isinstance(raw_suggestions, list):
+                for s in raw_suggestions:
+                    if isinstance(s, dict) and s.get("dimension") == "AI Quality":
+                        suggestions.append(
+                            Suggestion(
+                                dimension="AI Quality",
+                                priority=int(s.get("priority", 2)),
+                                message=str(s.get("message", "")),
+                                field=s.get("field"),
+                            )
+                        )
+            return DimensionResult(
+                name="AI Quality",
+                score=round(float(ai_dim.get("score", 0.0)), 1),
+                max_score=float(ai_dim.get("max", _TOTAL_MAX)),
+                checks=[str(c) for c in ai_dim.get("checks", [])],
+                failures=[str(f) for f in ai_dim.get("failures", [])],
+                suggestions=suggestions,
+            )
+
+    # Legacy fallback format: `{"deep": {"observations": ..., "bonus_total": ...}}`
     deep = data.get("deep", {})
     observations = deep.get("observations", {})
-    bonus_points  = deep.get("bonus_points", {})
-    bonus_total   = deep.get("bonus_total", 0.0)
+    bonus_total  = deep.get("bonus_total", 0.0)
 
     for key, answer in observations.items():
         label = key.replace("_", " ").capitalize()
-        pts   = bonus_points.get(key, 0)
         if answer == "yes":
             checks.append(f"{label} ✓")
         elif answer == "partial":
@@ -517,7 +545,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
                 dimension="AI Quality",
                 priority=2,
                 message=f"Improve: {label.lower()}.",
-                field="—",
+                field=_field_hint(key),
             ))
         else:
             failures.append(f"{label} — not met")
@@ -525,7 +553,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
                 dimension="AI Quality",
                 priority=1,
                 message=f"Fix: {label.lower()}.",
-                field="—",
+                field=_field_hint(key),
             ))
 
     return DimensionResult(

@@ -7,32 +7,34 @@ card = load("./tests/fixtures/good_card.json")
 
 # replicate _resolved_url logic
 def _resolved_url(c: AgentCard) -> str:
-    if getattr(c, "url", None):
+    if c.url:
         return str(c.url)
-    if getattr(c, "documentationUrl", None):
+    if c.documentationUrl is not None:
         return str(c.documentationUrl)
-    if getattr(c, "provider", None) and getattr(c.provider, "url", None):
+    if c.provider is not None and c.provider.url:
         return str(c.provider.url)
     name_slug = re.sub(r"[^a-z0-9]+", "-", (c.name or "agent").strip().lower())
     name_slug = name_slug.strip("-") or "agent"
     return f"https://example.invalid/{name_slug}"
 
+provider = card.provider
+caps = card.capabilities
 card_dict = {
     "name": card.name,
     "url": _resolved_url(card),
-    "version": card.version if getattr(card, "version", None) is not None else "0.0.0",
+    "version": card.version if card.version is not None else "0.0.0",
     "capabilities": {
-        "streaming": bool(getattr(card.capabilities, "streaming", False)),
-        "pushNotifications": bool(getattr(card.capabilities, "pushNotifications", False)),
-        "stateTransitionHistory": bool(getattr(card.capabilities, "stateTransitionHistory", False)),
-    } if getattr(card, "capabilities", None) is not None else {},
+        "streaming": bool(getattr(caps, "streaming", False)),
+        "pushNotifications": bool(getattr(caps, "pushNotifications", False)),
+        "stateTransitionHistory": bool(getattr(caps, "stateTransitionHistory", False)),
+    } if caps is not None else {},
     "description": card.description,
     "provider": {
-        "organization": card.provider.organization,
-        "url": str(card.provider.url),
-    } if getattr(card, "provider", None) is not None else None,
-    "documentationUrl": str(card.documentationUrl) if getattr(card, "documentationUrl", None) is not None else None,
-    "iconUrl": str(card.iconUrl) if getattr(card, "iconUrl", None) is not None else None,
+        "organization": provider.organization,
+        "url": str(provider.url),
+    } if provider is not None else None,
+    "documentationUrl": str(card.documentationUrl) if card.documentationUrl is not None else None,
+    "iconUrl": str(card.iconUrl) if card.iconUrl is not None else None,
     "protocolVersion": card.protocolVersion,
     "skills": [
         {

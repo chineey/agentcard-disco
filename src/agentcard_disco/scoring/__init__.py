@@ -5,7 +5,7 @@ from .engine import score
 from .result import DimensionResult, Grade, ScoreReport, Suggestion
 
 # ai_quality is NOT imported here at package load time — it is a lazy
-# import inside engine.py, only when deep=True, so the `anthropic` package
+# import inside engine.py, only when deep=True, so the `groq` package
 # is never required for standard Tier 1 scoring.
 
 __all__ = [

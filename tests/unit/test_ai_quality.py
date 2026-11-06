@@ -196,3 +196,63 @@ class TestAnswerCoercion:
         assert ai_quality._coerce_answer("no") == "no"
         assert ai_quality._coerce_answer("NO") == "no"
         assert ai_quality._coerce_answer("unknown_value") == "no"
+
+
+# ── Tests: remote API scoring (analyze_via_api) ────────────────────────────
+
+class TestAnalyzeViaApi:
+    def test_parses_standard_dimensions_response(self):
+        api_payload = {
+            "dimensions": [
+                {"name": "Metadata Richness", "score": 25.0, "max": 30.0, "checks": [], "failures": []},
+                {
+                    "name": "AI Quality",
+                    "score": 16.0,
+                    "max": 20.0,
+                    "checks": ["Description is specific"],
+                    "failures": ["Examples read like real user prompts — not met"],
+                },
+            ],
+            "suggestions": [
+                {
+                    "priority": 1,
+                    "dimension": "AI Quality",
+                    "field": "skills[*].examples",
+                    "message": "Fix: examples read like real user prompts.",
+                }
+            ],
+        }
+        mock_resp = MagicMock()
+        mock_resp.__enter__.return_value.read.return_value = json.dumps(api_payload).encode()
+
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            result = ai_quality.analyze_via_api(_make_card(), "acd_test", "https://api.example.com")
+
+        assert result.name == "AI Quality"
+        assert result.score == 16.0
+        assert result.max_score == 20.0
+        assert result.checks == ["Description is specific"]
+        assert len(result.failures) == 1
+        assert len(result.suggestions) == 1
+        assert result.suggestions[0].priority == 1
+
+    def test_parses_legacy_deep_response(self):
+        api_payload = {
+            "deep": {
+                "observations": {
+                    "description_specific": "yes",
+                    "examples_realistic": "partial",
+                },
+                "bonus_total": 8.0,
+            }
+        }
+        mock_resp = MagicMock()
+        mock_resp.__enter__.return_value.read.return_value = json.dumps(api_payload).encode()
+
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            result = ai_quality.analyze_via_api(_make_card(), "acd_test", "https://api.example.com")
+
+        assert result.score == 8.0
+        assert len(result.checks) == 1
+        assert len(result.failures) == 1
+        assert len(result.suggestions) == 1

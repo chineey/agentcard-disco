@@ -8,7 +8,6 @@ logging hiccup never breaks a real request.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Optional
 
 from server.auth import _get_supabase

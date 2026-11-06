@@ -85,10 +85,16 @@ agentcard-disco compare ./v1.json ./v2.json
 ## AI scoring setup (`--deep`)
 
 1. Install the deep extra: `pip install "agentcard-disco[deep]"`
-2. Add your Groq API key to a `.env` file in your working directory:
+2. If using your own model, add your Groq API key to a `.env` file in your working directory:
 
 ```env
 GROQ_API_KEY="gsk_your_key_here"
+```
+
+3. Alternatively, register for a free API key at [https://agentcard-disco-web.onrender.com](https://agentcard-disco-web.onrender.com) and authenticate:
+
+```bash
+agentcard-disco auth YOUR_API_KEY
 ```
 
 4. Run with `--deep`:
@@ -127,14 +133,14 @@ for suggestion in report.all_suggestions:
 agentcard-disco score SOURCE [OPTIONS]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--deep` | off | Enable Tier 2 AI analysis (+20 pts) |
-| `--format` | terminal | `terminal`, `json`, or `markdown` |
-| `--output FILE` | stdout | Write output to file |
-| `--fail-under SCORE` | — | Exit 1 if percentage < SCORE |
-| `--no-suggestions` | off | Hide suggestions table |
-| `--no-detail` | off | Hide per-dimension details |
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--deep` | — | off | Enable Tier 2 AI analysis (+20 pts) |
+| `--format` | `-f` | terminal | `terminal`, `json`, or `markdown` |
+| `--output FILE` | `-o` | stdout | Write output to file |
+| `--fail-under SCORE` | — | — | Exit 1 if percentage < SCORE |
+| `--no-suggestions` | — | off | Hide suggestions table |
+| `--no-detail` | — | off | Hide per-dimension details |
 
 ### `suggest`
 
@@ -142,12 +148,12 @@ agentcard-disco score SOURCE [OPTIONS]
 agentcard-disco suggest SOURCE [OPTIONS]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--priority` | all | Filter: `all`, `high`, `medium`, `low` |
-| `--format` | terminal | `terminal` or `json` |
-| `--limit N` | 20 | Max suggestions to show |
-| `--deep` | off | Include AI suggestions |
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--priority` | `-p` | all | Filter: `all`, `high`, `medium`, `low` |
+| `--format` | `-f` | terminal | `terminal` or `json` |
+| `--limit N` | `-n` | 20 | Max suggestions to show |
+| `--deep` | — | off | Include AI suggestions |
 
 ### `compare`
 
@@ -155,9 +161,10 @@ agentcard-disco suggest SOURCE [OPTIONS]
 agentcard-disco compare SOURCE SOURCE [SOURCE ...] [OPTIONS]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--format` | terminal | `terminal` or `json` |
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--format` | `-f` | terminal | `terminal` or `json` |
+| `--deep` | — | off | Enable Tier 2 AI analysis (+20 pts) |
 
 ---
 
