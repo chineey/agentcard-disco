@@ -16,7 +16,6 @@ from typing import Any
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator, model_validator
 
-
 # ---------------------------------------------------------------------------
 # Sub-models
 # ---------------------------------------------------------------------------
@@ -223,7 +222,7 @@ class AgentCard(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _check_skill_id_uniqueness(self) -> "AgentCard":
+    def _check_skill_id_uniqueness(self) -> AgentCard:
         ids = [s.id for s in self.skills]
         if len(ids) != len(set(ids)):
             duplicates = {i for i in ids if ids.count(i) > 1}

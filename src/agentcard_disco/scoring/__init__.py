@@ -9,14 +9,14 @@ from .result import DimensionResult, Grade, ScoreReport, Suggestion
 # is never required for standard Tier 1 scoring.
 
 __all__ = [
-    "score",
-    "ScoreReport",
     "DimensionResult",
     "Grade",
+    "ScoreReport",
     "Suggestion",
-    "metadata_richness",
-    "semantic_specificity",
-    "search_alignment",
     "completeness",
+    "metadata_richness",
+    "score",
+    "search_alignment",
+    "semantic_specificity",
     # "ai_quality" is accessible as agentcard_disco.scoring.ai_quality
 ]

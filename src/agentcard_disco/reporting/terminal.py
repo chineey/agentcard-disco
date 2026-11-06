@@ -10,14 +10,19 @@ Produces a structured, color-coded report with:
 
 from __future__ import annotations
 
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
-from rich import box
 
-from agentcard_disco.scoring.result import DimensionResult, Grade, ScoreReport, Suggestion
+from agentcard_disco.scoring.result import (
+    DimensionResult,
+    Grade,
+    ScoreReport,
+    Suggestion,
+)
 
 # Shared console — callers can pass their own for testing
 _DEFAULT_CONSOLE = Console()

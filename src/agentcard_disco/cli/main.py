@@ -42,14 +42,13 @@ from agentcard_disco.reporting.terminal import render_compare, render_report
 from agentcard_disco.scoring.engine import score as run_score
 from agentcard_disco.scoring.result import ScoreReport
 
-
 _console = Console()
 _err_console = Console(stderr=True)
 
 
 # ── Shared utilities ───────────────────────────────────────────────────────
 
-def _load_or_exit(source: str) -> "AgentCard":
+def _load_or_exit(source: str) -> AgentCard:
     """Load an AgentCard from source, printing a friendly error and exiting on failure."""
     try:
         return load(source)
@@ -71,6 +70,7 @@ def _run_deep(card: AgentCard, source: str) -> ScoreReport:
     3. Neither configured → show a helpful message and exit.
     """
     import os
+
     from agentcard_disco.scoring.engine import _load_dotenv
     _load_dotenv()
 
@@ -137,7 +137,7 @@ def auth(key: str) -> None:
         )
 
     save_api_key(key)
-    _console.print(f"[bold green]✓[/bold green] API key saved. You can now use [bold]--deep[/bold] without any extra setup.")
+    _console.print("[bold green]✓[/bold green] API key saved. You can now use [bold]--deep[/bold] without any extra setup.")
 
 
 # ── score command ──────────────────────────────────────────────────────────

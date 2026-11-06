@@ -20,7 +20,6 @@ from pydantic import ValidationError
 from agentcard_disco import __version__
 from agentcard_disco.models import AgentCard
 
-
 # ---------------------------------------------------------------------------
 # Exceptions
 # ---------------------------------------------------------------------------

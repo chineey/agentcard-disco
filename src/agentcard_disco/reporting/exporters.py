@@ -15,7 +15,6 @@ from datetime import datetime, timezone
 from agentcard_disco import __version__
 from agentcard_disco.scoring.result import ScoreReport
 
-
 # ── JSON ───────────────────────────────────────────────────────────────────
 
 def to_json(report: ScoreReport, *, indent: int = 2) -> str:
@@ -180,8 +179,10 @@ def to_markdown(report: ScoreReport) -> str:
         lines += [
             "---",
             "",
-            f"> ⚠️ **{high} high-priority issue(s)** must be addressed before publishing "
-            "this card to an A2A registry.",
+            (
+                f"> ⚠️ **{high} high-priority issue(s)** must be addressed before publishing "
+                "this card to an A2A registry."
+            ),
             "",
         ]
     elif grade.value in ("A", "B"):

@@ -50,6 +50,6 @@ def _load_config() -> dict[str, Any]:
         try:
             data = json.loads(_CONFIG_FILE.read_text(encoding="utf-8"))
             return data if isinstance(data, dict) else {}
-        except Exception:
+        except (OSError, ValueError):
             return {}
     return {}

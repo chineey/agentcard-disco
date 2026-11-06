@@ -20,7 +20,7 @@ class Grade(str, Enum):
     F = "F"   #  0-29   Failing, major overhaul needed
 
     @classmethod
-    def from_score(cls, score: float) -> "Grade":
+    def from_score(cls, score: float) -> Grade:
         if score >= 85:
             return cls.A
         if score >= 70:
@@ -61,7 +61,7 @@ class Suggestion:
     message: str            # Human-readable description
     field: str | None = None  # The specific AgentCard field to fix
 
-    def __lt__(self, other: "Suggestion") -> bool:
+    def __lt__(self, other: Suggestion) -> bool:
         return self.priority < other.priority
 
 

@@ -244,7 +244,7 @@ def analyze(card: AgentCard) -> DimensionResult:
             )
             raw_text = getattr(response.choices[0].message, "content", "") or ""
             break  # success — exit retry loop
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             last_exc = exc
             err_str = str(exc)
 
@@ -361,8 +361,8 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
     Falls back to a 0-score result with a clear message on any failure.
     """
     import json as _json
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     checks: list[str]             = []
     failures: list[str]           = []
@@ -392,7 +392,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
     if hasattr(card, "model_dump"):
         try:
             card_dict = card.model_dump()
-        except Exception:
+        except (AttributeError, TypeError, ValueError):
             card_dict = None
 
     if card_dict is None:
@@ -468,10 +468,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
             # Server responded with HTTP error (4xx/5xx). Include payload
             # preview to help diagnose validation problems.
             body = e.read().decode(errors="replace")
-            try:
-                payload_preview = payload.decode(errors="replace")[:1000]
-            except Exception:
-                payload_preview = "<unable to decode payload>"
+            payload_preview = payload.decode(errors="replace")[:1000]
             failures.append(
                 f"API deep scoring failed ({e.code}): {body[:200]} -- payload: {payload_preview}"
             )
@@ -483,7 +480,7 @@ def analyze_via_api(card: AgentCard, api_key: str, api_base: str) -> DimensionRe
                 failures=failures,
                 suggestions=suggestions,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             # Retry on transient network errors / timeouts
             if attempt < 2:
                 backoff = 2 ** attempt
