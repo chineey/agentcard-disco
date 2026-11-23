@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>agentcard-disco — A2A Agent Card linter &amp; scorer</title>
+<meta name="description" content="Validate, score and optimize A2A Agent Cards for discoverability before publishing to a registry. CLI, library and hosted API." />
+<meta property="og:title" content="agentcard-disco — A2A Agent Card linter &amp; scorer" />
+<meta property="og:description" content="Validate, score and optimize A2A Agent Cards before you publish." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --radius: 0.5rem;
+    --background: oklch(0.16 0.015 160);
+    --foreground: oklch(0.95 0.01 140);
+    --card: oklch(0.2 0.018 160);
+    --card-foreground: oklch(0.95 0.01 140);
+    --primary: oklch(0.86 0.2 140);
+    --primary-foreground: oklch(0.16 0.015 160);
+    --muted: oklch(0.24 0.015 160);
+    --muted-foreground: oklch(0.68 0.02 150);
+    --accent: oklch(0.78 0.14 75);
+    --destructive: oklch(0.65 0.2 25);
+    --border: oklch(0.32 0.02 160);
+    --tier-gold: oklch(0.82 0.15 85);
+    --tier-silver: oklch(0.8 0.02 240);
+    --tier-bronze: oklch(0.66 0.12 50);
+    --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-color: var(--border);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    background-image: radial-gradient(oklch(0.3 0.02 160 / 0.5) 1px, transparent 1px);
+    background-size: 22px 22px;
+    animation: bg-drift 30s linear infinite;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .container {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* ── NAV ─────────────────────────────────────────────────── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+  }
+
+  .nav-brand {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    color: var(--muted-foreground);
+  }
+
+  .nav-links a {
+    transition: color 0.15s ease, opacity 0.15s ease;
+  }
+
+  .nav-links a:hover { color: var(--foreground); }
+  .nav-links a.nav-cta { color: var(--primary); }
+  .nav-links a.nav-cta:hover { opacity: 0.8; }
+
+  /* ── HERO ────────────────────────────────────────────────── */
+  .hero { padding: 5rem 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+
+  .hero h1 {
+    margin-top: 1rem;
+    font-size: clamp(2.75rem, 6vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+
+  .hero h1 .hl { color: var(--primary); }
+
+  .hero-sub {
+    margin-top: 1.5rem;
+    max-width: 42rem;
+    font-size: 1.125rem;
+    color: var(--muted-foreground);
+  }
+
+  /* ── TERMINAL ────────────────────────────────────────────── */
+  .terminal {
+    position: relative;
+    margin-top: 2.5rem;
+    max-width: 42rem;
+    overflow: hidden;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background-color: var(--card);
+    padding: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.65;
+  }
+
+  .terminal-line { display: block; }
+  .terminal-line + .terminal-line { margin-top: 0.25rem; }
+  .terminal-gap { margin-top: 0.75rem !important; }
+  .t-muted { color: var(--muted-foreground); }
+  .t-primary { color: var(--primary); }
+  .t-gold { color: var(--tier-gold); }
+
+  .scan-line {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 34%;
+    pointer-events: none;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--primary) 22%, transparent),
+      transparent
+    );
+    animation: sweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .cursor-blink { animation: blink 1s steps(1) infinite; }
+
+  /* ── SECTIONS ────────────────────────────────────────────── */
+  .section { padding: 4rem 0; }
+
+  .section-title {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+  }
+
+  .steps-grid {
+    margin-top: 2rem;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .step-card {
+    height: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background-color: var(--card);
+    padding: 1.5rem;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .step-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+  }
+
+  .step-num {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--primary);
+  }
+
+  .step-card h3 {
+    margin-top: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .step-card p {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    flex: 1;
+  }
+
+  .step-cmd {
+    margin-top: 1rem;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid var(--border);
+    background-color: var(--background);
+    padding: 0.625rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--foreground);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* ── TIERS / DIMENSIONS ──────────────────────────────────── */
+  .tiers-grid {
+    margin-top: 2rem;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tier-card {
+    height: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    border-top-width: 4px;
+    background-color: var(--card);
+    padding: 1.5rem;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tier-card:hover { transform: translateY(-4px); }
+
+  .tier-gold { color: var(--tier-gold); border-top-color: var(--tier-gold); }
+  .tier-silver { color: var(--tier-silver); border-top-color: var(--tier-silver); }
+  .tier-bronze { color: var(--tier-bronze); border-top-color: var(--tier-bronze); }
+  .tier-fail { color: var(--destructive); border-top-color: var(--destructive); }
+
+  .tier-range {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .tier-card h3 {
+    margin-top: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .tier-card p.tier-desc {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    flex: 1;
+  }
+
+  .meter {
+    margin-top: 1.25rem;
+    height: 3px;
+    border-radius: 9999px;
+    background-color: var(--muted);
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background-color: currentColor;
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+
+  .reveal-in .meter-fill {
+    animation: meter-grow 1.1s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  .deep-banner {
+    margin-top: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background-color: var(--card);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .deep-banner strong { color: var(--primary); font-family: var(--font-mono); font-weight: 600; }
+  .deep-banner span.muted { color: var(--muted-foreground); }
+
+  /* ── KEY REGISTRATION CARD ───────────────────────────────── */
+  .key-card {
+    border-radius: calc(var(--radius) + 4px);
+    background-color: var(--card);
+    padding: 2rem;
+    box-shadow: 0 0 0 1px var(--primary), 0 0 32px -6px var(--primary);
+    animation: glow-pulse 4.5s ease-in-out infinite;
+  }
+
+  @media (min-width: 768px) {
+    .key-card { padding: 3rem; }
+  }
+
+  .key-card h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .key-card > p {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+  }
+
+  .key-form {
+    margin-top: 2rem;
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .key-input {
+    flex: 1;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid var(--border);
+    background-color: var(--background);
+    color: var(--foreground);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+    min-width: 0;
+  }
+
+  .key-input::placeholder { color: var(--muted-foreground); opacity: 0.7; }
+  .key-input:focus { border-color: var(--primary); }
+  .key-input:disabled { opacity: 0.6; }
+
+  .key-btn {
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .key-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    opacity: 0.9;
+  }
+
+  .key-btn:active:not(:disabled) { transform: translateY(0); }
+  .key-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid color-mix(in oklab, var(--primary-foreground) 30%, transparent);
+    border-top-color: var(--primary-foreground);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .form-error {
+    display: none;
+    margin-top: 0.75rem;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent);
+    background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+    padding: 0.625rem 0.875rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--destructive);
+  }
+
+  .form-error.visible { display: block; }
+
+  .retry-link {
+    background: none;
+    border: none;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  .key-result {
+    display: none;
+    margin-top: 2rem;
+    font-family: var(--font-mono);
+  }
+
+  .key-result.visible { display: block; }
+
+  .key-row {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid var(--border);
+    background-color: var(--background);
+    padding: 0.875rem 1rem;
+  }
+
+  .key-code {
+    flex: 1;
+    word-break: break-all;
+    color: var(--primary);
+    font-size: 0.875rem;
+  }
+
+  .copy-btn {
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 4px);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .copy-btn:hover, .copy-btn.copied {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .key-usage {
+    margin-top: 0.875rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    line-height: 1.7;
+  }
+
+  .key-usage code {
+    color: var(--foreground);
+  }
+
+  /* ── FOOTER ──────────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1.25rem;
+  }
+
+  .footer-links a:hover { color: var(--primary); }
+
+  /* ── MOTION ──────────────────────────────────────────────── */
+  @keyframes bg-drift { to { background-position: 22px 22px; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes type-in {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+  }
+
+  @keyframes meter-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--primary), 0 0 30px -8px var(--primary); }
+    50% { box-shadow: 0 0 0 1px var(--primary), 0 0 62px -6px var(--primary); }
+  }
+
+  @keyframes sweep {
+    from { transform: translateX(-140%); }
+    to { transform: translateX(340%); }
+  }
+
+  .rise-in { animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  .fade-in { animation: fade-in 0.6s ease both; }
+  .type-in {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: bottom;
+    animation: type-in 0.9s steps(32, end) both;
+  }
+
+  .reveal { opacity: 0; }
+  .reveal-in { animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+  @media (max-width: 768px) {
+    .steps-grid { grid-template-columns: 1fr; }
+    .tiers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nav-links a.hide-sm { display: none; }
+  }
+
+  @media (max-width: 540px) {
+    .tiers-grid { grid-template-columns: 1fr; }
+    .key-form { flex-direction: column; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .reveal { opacity: 1; }
+    .meter-fill { transform: scaleX(1); }
+  }
+</style>
+</head>
+
+<body>
+  <main class="container">
+    <nav aria-label="Primary navigation">
+      <a href="#top" class="nav-brand">agentcard-disco<span class="cursor-blink">_</span></a>
+      <div class="nav-links">
+        <a href="#how" class="hide-sm">how</a>
+        <a href="#tiers" class="hide-sm">tiers</a>
+        <a href="https://github.com/chineey/agentcard-disco" target="_blank" rel="noopener" class="hide-sm">github ↗</a>
+        <a href="#key" class="nav-cta">get key →</a>
+      </div>
+    </nav>
+
+    <section id="top" class="hero">
+      <p class="rise-in eyebrow" style="animation-delay: 80ms;">open source · A2A protocol</p>
+      <h1 class="rise-in" style="animation-delay: 180ms;">
+        Make your agent <span class="hl">discoverable</span>.
+      </h1>
+      <p class="rise-in hero-sub" style="animation-delay: 320ms;">
+        Validate, score and optimize A2A Agent Cards before publishing to a registry. Python CLI, library, and hosted FastAPI service.
+      </p>
+
+      <div class="rise-in terminal" style="animation-delay: 460ms;" role="img" aria-label="Terminal showing agentcard-disco score output">
+        <span aria-hidden="true" class="scan-line" style="animation-delay: 900ms;"></span>
+        <span class="terminal-line t-muted">
+          <span class="type-in" style="animation-delay: 700ms;">$ pip install agentcard-disco</span>
+        </span>
+        <span class="terminal-line">
+          <span class="type-in" style="animation-delay: 1700ms;">$ <span class="t-primary">agentcard-disco score</span> ./agent-card.json --deep</span>
+          <span class="fade-in" style="animation-delay: 2600ms;"><span class="cursor-blink">▌</span></span>
+        </span>
+        <span class="terminal-line terminal-gap fade-in t-muted" style="animation-delay: 2900ms;">✓ schema valid · 4 heuristic dimensions + AI quality</span>
+        <span class="terminal-line fade-in t-gold" style="animation-delay: 3100ms;">★ score <span id="hero-score">0</span>/100 — GRADE A</span>
+      </div>
+    </section>
+
+    <section id="how" class="section">
+      <div class="reveal">
+        <h2 class="section-title">How it works</h2>
+      </div>
+      <div class="steps-grid">
+        <div class="reveal" data-delay="0">
+          <div class="step-card">
+            <span class="step-num">01</span>
+            <h3>Validate</h3>
+            <p>Checks your agent-card.json against the A2A schema: required fields, URLs, auth schemes, and capabilities.</p>
+            <div class="step-cmd">$ pip install agentcard-disco</div>
+          </div>
+        </div>
+        <div class="reveal" data-delay="110">
+          <div class="step-card">
+            <span class="step-num">02</span>
+            <h3>Score</h3>
+            <p>Rates discoverability 0–100 offline across 4 heuristic dimensions, or add --deep for Tier 2 AI quality analysis.</p>
+            <div class="step-cmd">$ agentcard-disco score ./card.json --deep</div>
+          </div>
+        </div>
+        <div class="reveal" data-delay="220">
+          <div class="step-card">
+            <span class="step-num">03</span>
+            <h3>Optimize</h3>
+            <p>Surfaces prioritized, field-level fixes so orchestrators and A2A registries reliably route tasks to your agent.</p>
+            <div class="step-cmd">$ agentcard-disco suggest ./card.json</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tiers" class="section">
+      <div class="reveal">
+        <h2 class="section-title">Scoring grades &amp; dimensions</h2>
+      </div>
+      <div class="tiers-grid">
+        <div class="reveal" data-delay="0">
+          <div class="tier-card tier-gold">
+            <p class="tier-range">85–100%</p>
+            <h3>Grade A</h3>
+            <p class="tier-desc">Registry-ready. Rich metadata, distinct skills, realistic examples, and clear I/O modes.</p>
+            <div class="meter">
+              <span class="meter-fill" style="width: 92%; animation-delay: 300ms;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="reveal" data-delay="110">
+          <div class="tier-card tier-silver">
+            <p class="tier-range">70–84%</p>
+            <h3>Grade B</h3>
+            <p class="tier-desc">Valid and discoverable, with a few metadata or completeness gaps worth tightening.</p>
+            <div class="meter">
+              <span class="meter-fill" style="width: 77%; animation-delay: 410ms;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="reveal" data-delay="220">
+          <div class="tier-card tier-bronze">
+            <p class="tier-range">50–69%</p>
+            <h3>Grade C</h3>
+            <p class="tier-desc">Valid but thin. Generic descriptions or missing tags make selection harder.</p>
+            <div class="meter">
+              <span class="meter-fill" style="width: 58%; animation-delay: 520ms;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="reveal" data-delay="330">
+          <div class="tier-card tier-fail">
+            <p class="tier-range">0–49%</p>
+            <h3>Grade D / F</h3>
+            <p class="tier-desc">Significant gaps in specificity, search alignment, or protocol readiness. Fix before publishing.</p>
+            <div class="meter">
+              <span class="meter-fill" style="width: 28%; animation-delay: 630ms;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal" data-delay="160">
+        <div class="deep-banner">
+          <div>
+            <strong>Tier 1 (Offline, 0–100 pts)</strong>
+            <span class="muted"> · Metadata Richness (30) · Semantic Specificity (30) · Search Alignment (20) · Completeness (20)</span>
+          </div>
+          <div>
+            <strong>Tier 2 (--deep, +20 pts)</strong>
+            <span class="muted"> · Deterministic AI Quality</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="key" class="section">
+      <div class="reveal">
+        <div class="key-card">
+          <h2>Get your free API key</h2>
+          <p>Sign up with your email to unlock hosted <code style="font-family:var(--font-mono);color:var(--primary);">--deep</code> AI scoring. No credit card required.</p>
+
+          <form id="reg-form" class="key-form" novalidate>
+            <label for="email-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Email address</label>
+            <input
+              type="email"
+              id="email-input"
+              class="key-input"
+              required
+              placeholder="you@company.dev"
+              autocomplete="email"
+              spellcheck="false"
+            />
+            <button type="submit" id="submit-btn" class="key-btn">
+              <span id="btn-label">generate key →</span>
+            </button>
+          </form>
+          <div id="form-error" class="form-error" role="alert"></div>
+
+          <div id="key-result" class="key-result" aria-live="polite">
+            <p class="fade-in" style="font-size:0.875rem;color:var(--muted-foreground);">
+              Your API key for <span id="key-email"></span> (save it now — it won't be shown again):
+            </p>
+            <div class="key-row rise-in">
+              <code id="key-value" class="key-code"></code>
+              <button type="button" id="copy-btn" class="copy-btn">Copy</button>
+            </div>
+            <p class="key-usage fade-in" style="animation-delay: 400ms;">
+              # Save once via CLI:<br />
+              <code>agentcard-disco auth <span id="key-in-code">acd_...</span></code><br />
+              # Run deep scoring:<br />
+              <code>agentcard-disco score ./agent-card.json --deep</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>MIT licensed · agentcard-disco</span>
+      <div class="footer-links">
+        <a href="https://github.com/chineey/agentcard-disco" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://pypi.org/project/agentcard-disco/" target="_blank" rel="noopener">PyPI</a>
+        <a href="https://agentcard-disco.onrender.com/docs" target="_blank" rel="noopener">API Docs</a>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    const API_BASE = "https://agentcard-disco.onrender.com";
+
+    // Scroll reveal
+    const revealEls = document.querySelectorAll(".reveal");
+    if (typeof IntersectionObserver !== "undefined") {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const delay = entry.target.getAttribute("data-delay") || "0";
+            entry.target.style.animationDelay = `${delay}ms`;
+            entry.target.classList.add("reveal-in");
+            io.unobserve(entry.target);
+          }
+        });
+      }, { rootMargin: "0px 0px -10% 0px", threshold: 0.12 });
+      revealEls.forEach((el) => io.observe(el));
+    } else {
+      revealEls.forEach((el) => el.classList.add("reveal-in"));
+    }
+
+    // Hero count-up score
+    (function countUp(el, target, duration, delay) {
+      if (!el) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        el.textContent = String(target);
+        return;
+      }
+      setTimeout(() => {
+        let start = 0;
+        const step = (now) => {
+          if (!start) start = now;
+          const p = Math.min(1, (now - start) / duration);
+          el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }, delay);
+    })(document.getElementById("hero-score"), 88, 1100, 2100);
+
+    // Hex scramble effect for key reveal
+    function scrambleInto(el, target, duration = 900) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        el.textContent = target;
+        return;
+      }
+      const HEX = "0123456789abcdef";
+      let start = 0;
+      const step = (now) => {
+        if (!start) start = now;
+        const p = Math.min(1, (now - start) / duration);
+        const settled = Math.floor(target.length * p);
+        let noise = "";
+        for (let i = settled; i < target.length; i++) {
+          noise += HEX[Math.floor(Math.random() * HEX.length)];
+        }
+        el.textContent = target.slice(0, settled) + noise;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      };
+      requestAnimationFrame(step);
+    }
+
+    // Registration form
+    const regForm = document.getElementById("reg-form");
+    const emailInput = document.getElementById("email-input");
+    const submitBtn = document.getElementById("submit-btn");
+    const formError = document.getElementById("form-error");
+    const keyResult = document.getElementById("key-result");
+    const keyEmail = document.getElementById("key-email");
+    const keyValue = document.getElementById("key-value");
+    const keyInCode = document.getElementById("key-in-code");
+    const copyBtn = document.getElementById("copy-btn");
+
+    let currentRawKey = "";
+
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      emailInput.disabled = loading;
+      if (loading) {
+        submitBtn.innerHTML = '<span class="spinner" aria-label="Loading"></span>';
+      } else {
+        submitBtn.innerHTML = '<span id="btn-label">generate key →</span>';
+      }
+    }
+
+    function showError(html) {
+      formError.innerHTML = html;
+      formError.classList.add("visible");
+    }
+
+    function clearError() {
+      formError.classList.remove("visible");
+      formError.innerHTML = "";
+    }
+
+    async function handleSubmit(e) {
+      if (e) e.preventDefault();
+      clearError();
+      const email = emailInput.value.trim();
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError("Please enter a valid email address.");
+        emailInput.focus();
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/v1/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          const apiKey = data.api_key || data.key || "";
+          if (apiKey) {
+            currentRawKey = apiKey;
+            regForm.style.display = "none";
+            keyEmail.textContent = email;
+            keyInCode.textContent = apiKey;
+            keyResult.classList.add("visible");
+            scrambleInto(keyValue, apiKey, 900);
+          } else {
+            showError("Key sent to your inbox — check your email.");
+          }
+          return;
+        }
+
+        if (res.status === 409 || (data.detail && data.detail.toLowerCase().includes("already registered"))) {
+          showError("This email is already registered. Check your inbox for your existing key.");
+        } else if (res.status === 422 || res.status === 400) {
+          showError("Invalid email address. Please check and try again.");
+        } else {
+          throw new Error("Server error");
+        }
+      } catch {
+        showError(
+          'Something went wrong. <button type="button" class="retry-link" onclick="handleSubmit()">Retry →</button>'
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    regForm.addEventListener("submit", handleSubmit);
+
+    copyBtn.addEventListener("click", async () => {
+      const key = currentRawKey || keyValue.textContent;
+      try {
+        await navigator.clipboard.writeText(key);
+        copyBtn.textContent = "Copied!";
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.textContent = "Copy";
+          copyBtn.classList.remove("copied");
+        }, 2000);
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(keyValue);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand("copy");
+        window.getSelection().removeAllRanges();
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
+      }
+    });
+  </script>
+</body>
+</html>

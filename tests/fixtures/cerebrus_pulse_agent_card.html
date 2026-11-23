@@ -1,154 +1,254 @@
-
-<h2 class="sr-only">Live A2A Agent Card: Cerebrus Pulse — crypto derivatives intelligence agent with 9 skills</h2>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cerebrus Pulse — A2A Agent Card preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
-  .card-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
-  .agent-avatar { width: 48px; height: 48px; border-radius: var(--border-radius-md); background: var(--color-background-info); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; color: var(--color-text-info); flex-shrink: 0; }
-  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); margin-right: 4px; margin-bottom: 4px; }
-  .badge-teal { background: #E1F5EE; color: #0F6E56; }
-  .badge-purple { background: #EEEDFE; color: #3C3489; }
-  .badge-gray { background: #F1EFE8; color: #5F5E5A; }
-  .skill-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; margin-bottom: 8px; }
-  .skill-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .skill-id { font-size: 11px; font-family: var(--font-mono); color: var(--color-text-tertiary); }
-  .price-badge { font-size: 11px; background: #EAF3DE; color: #3B6D11; padding: 2px 8px; border-radius: var(--border-radius-md); }
-  .meta-row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px; }
-  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin: 16px 0 8px; }
-  .capability-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-  .dot-on { background: #1D9E75; }
-  .dot-off { background: #B4B2A9; }
-  .cap-item { display: flex; align-items: center; font-size: 13px; color: var(--color-text-secondary); margin-right: 16px; }
-  .source-chip { font-size: 11px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 99px; padding: 2px 10px; display: inline-flex; align-items: center; gap: 4px; color: var(--color-text-secondary); }
+  :root {
+    --radius: 0.5rem;
+    --background: oklch(0.16 0.015 160);
+    --foreground: oklch(0.95 0.01 140);
+    --card: oklch(0.2 0.018 160);
+    --primary: oklch(0.86 0.2 140);
+    --muted: oklch(0.24 0.015 160);
+    --muted-foreground: oklch(0.68 0.02 150);
+    --border: oklch(0.32 0.02 160);
+    --tier-gold: oklch(0.82 0.15 85);
+    --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-color: var(--border); }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    background-image: radial-gradient(oklch(0.3 0.02 160 / 0.5) 1px, transparent 1px);
+    background-size: 22px 22px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 3rem 1.5rem;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 34rem;
+    border-radius: calc(var(--radius) + 4px);
+    border: 1px solid var(--border);
+    background-color: var(--card);
+    padding: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  h1 {
+    margin-top: 0.25rem;
+    font-family: var(--font-sans);
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--primary);
+  }
+
+  .live-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--primary);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .desc {
+    margin-top: 1rem;
+    font-family: var(--font-sans);
+    color: var(--muted-foreground);
+    line-height: 1.55;
+  }
+
+  dl {
+    margin-top: 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.25rem;
+    font-size: 0.75rem;
+  }
+
+  dt { color: var(--muted-foreground); }
+  dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  dd.hi { color: var(--primary); }
+
+  .skills {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .skill {
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid var(--border);
+    background-color: var(--background);
+    padding: 0.75rem;
+    transition: border-color 0.25s ease;
+  }
+
+  .skill:hover { border-color: color-mix(in oklab, var(--primary) 50%, transparent); }
+
+  .skill-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .skill-name { font-weight: 600; }
+  .skill-price { font-size: 0.75rem; color: var(--primary); }
+  .skill-desc { margin-top: 0.25rem; font-family: var(--font-sans); font-size: 0.75rem; color: var(--muted-foreground); }
+  .skill-tags { margin-top: 0.375rem; font-size: 0.75rem; color: var(--muted-foreground); }
+
+  footer {
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .score-label { color: var(--muted-foreground); }
+  .score-val { font-size: 1.125rem; font-weight: 600; color: var(--tier-gold); }
+
+  .meter {
+    margin-top: 0.75rem;
+    height: 3px;
+    border-radius: 9999px;
+    background-color: var(--muted);
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background-color: var(--tier-gold);
+    transform-origin: left;
+    animation: meter-grow 1.1s cubic-bezier(0.2, 0.7, 0.3, 1) 0.5s both;
+  }
+
+  @keyframes rise-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes meter-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>
-
-<div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 20px 24px;">
-
-  <div class="card-header">
-    <div class="agent-avatar"><i class="ti ti-chart-candle" aria-hidden="true"></i></div>
-    <div style="flex: 1; min-width: 0;">
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
-        <span style="font-size: 17px; font-weight: 500; color: var(--color-text-primary);">Cerebrus Pulse</span>
-        <span class="badge badge-gray">v1.1.0</span>
-        <span class="badge badge-teal">A2A 0.3</span>
+</head>
+<body>
+  <article class="card">
+    <header>
+      <div>
+        <p class="eyebrow">A2A AGENT CARD · v1.1.0 · A2A 0.3</p>
+        <h1>Cerebrus Pulse</h1>
       </div>
-      <p style="font-size: 13px; color: var(--color-text-secondary); margin: 0 0 8px;">Pay-per-call crypto derivatives intelligence. No signup — USDC micropayments via x402. 51 Hyperliquid perpetual markets. Responses in &lt;200ms.</p>
-      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-        <a href="https://cerebruspulse.xyz/docs" style="text-decoration: none;" target="_blank"><span class="source-chip"><i class="ti ti-external-link" style="font-size:12px" aria-hidden="true"></i> docs</span></a>
-        <span class="source-chip"><i class="ti ti-link" style="font-size:12px" aria-hidden="true"></i> api.cerebruspulse.xyz/a2a</span>
-        <span class="source-chip"><i class="ti ti-building" style="font-size:12px" aria-hidden="true"></i> Cerebrus Pulse</span>
+      <span class="live"><span class="live-dot"></span> live</span>
+    </header>
+
+    <p class="desc">
+      Pay-per-call crypto derivatives intelligence. No signup — USDC micropayments via x402. 51 Hyperliquid perpetual markets. Responses in &lt;200ms.
+    </p>
+
+    <dl>
+      <dt>url</dt><dd>https://api.cerebruspulse.xyz/a2a</dd>
+      <dt>docs</dt><dd>https://cerebruspulse.xyz/docs</dd>
+      <dt>auth</dt><dd>x402 (USDC micropayments)</dd>
+      <dt>streaming</dt><dd class="hi">false</dd>
+      <dt>modes</dt><dd>application/json, text/plain</dd>
+    </dl>
+
+    <div class="skills">
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Multi-Timeframe Confluence Analysis</span><span class="skill-price">$0.02/call</span></div>
+        <p class="skill-desc">Technical analysis across 6 timeframes with a single 0–100 confluence score: trend, RSI, MACD, Bollinger Bands, and regime.</p>
+        <p class="skill-tags">#crypto #derivatives #multi-timeframe #regime-detection</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Derivatives Market Screener</span><span class="skill-price">$0.04/call</span></div>
+        <p class="skill-desc">Rank all 51 perpetuals by confluence, regime, trend strength, or volatility in one call.</p>
+        <p class="skill-tags">#screener #signal-detection #ranking</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Open Interest Analysis</span><span class="skill-price">$0.01/call</span></div>
+        <p class="skill-desc">Real-time OI with delta, percentile rank, and price-OI divergence detection. Spot positioning squeezes before they move price.</p>
+        <p class="skill-tags">#open-interest #funding-rate #divergence</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Spread &amp; Liquidity Analysis</span><span class="skill-price">$0.008/call</span></div>
+        <p class="skill-desc">Bid-ask spread + slippage estimates at $10k / $50k / $100k / $500k notional.</p>
+        <p class="skill-tags">#spread #liquidity #slippage</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Cross-Asset Correlation Matrix</span><span class="skill-price">$0.03/call</span></div>
+        <p class="skill-desc">BTC-vs-alts correlation matrix with regime classification. Avoid accidentally holding correlated positions.</p>
+        <p class="skill-tags">#correlation #portfolio #risk</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Full Intelligence Bundle</span><span class="skill-price">$0.04/call</span></div>
+        <p class="skill-desc">Confluence + OI + funding + spread + regime in one response. 17% cheaper than calling endpoints separately.</p>
+        <p class="skill-tags">#bundle #comprehensive #all-in-one</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">Hyperliquid–Chainlink Basis</span><span class="skill-price">$0.015/call</span></div>
+        <p class="skill-desc">HL perpetual oracle vs Chainlink spot. Surfaces exchange premium/discount and flags mean-reversion setups.</p>
+        <p class="skill-tags">#chainlink #basis #oracle</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">CEX–DEX Price Divergence</span><span class="skill-price">$0.015/call</span></div>
+        <p class="skill-desc">Coinbase spot vs DEX/Chainlink oracle. Catches venue dislocations and arb opportunities.</p>
+        <p class="skill-tags">#arbitrage #cross-venue #coinbase</p>
+      </div>
+      <div class="skill">
+        <div class="skill-top"><span class="skill-name">USDC Collateral Health Monitor</span><span class="skill-price">$0.008/call</span></div>
+        <p class="skill-desc">Real-time USDC peg status via Chainlink Arbitrum oracle + sequencer health check.</p>
+        <p class="skill-tags">#usdc #stablecoin #depeg</p>
       </div>
     </div>
-  </div>
 
-  <div class="section-label">Capabilities</div>
-  <div style="display: flex; flex-wrap: wrap; margin-bottom: 4px;">
-    <span class="cap-item"><span class="capability-dot dot-off"></span>streaming</span>
-    <span class="cap-item"><span class="capability-dot dot-off"></span>push notifications</span>
-    <span class="cap-item"><span class="capability-dot dot-off"></span>state history</span>
-  </div>
-  <div class="meta-row" style="margin-top: 8px;">
-    <i class="ti ti-arrow-right" style="font-size:13px" aria-hidden="true"></i>
-    <span>Input: <code>application/json</code>, <code>text/plain</code></span>
-  </div>
-  <div class="meta-row">
-    <i class="ti ti-arrow-left" style="font-size:13px" aria-hidden="true"></i>
-    <span>Output: <code>application/json</code></span>
-  </div>
-
-  <div class="section-label">Skills (9)</div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Multi-Timeframe Confluence Analysis</span>
-      <span class="price-badge">$0.02/call</span>
-    </div>
-    <div class="skill-id">confluence-analysis</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Technical analysis across 6 timeframes with a single 0–100 confluence score: trend, RSI, MACD, Bollinger Bands, and regime.</p>
-    <div><span class="badge badge-teal">crypto</span><span class="badge badge-teal">derivatives</span><span class="badge badge-purple">multi-timeframe</span><span class="badge badge-gray">regime-detection</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Derivatives Market Screener</span>
-      <span class="price-badge">$0.04/call</span>
-    </div>
-    <div class="skill-id">market-screener</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Rank all 51 perpetuals by confluence, regime, trend strength, or volatility in one call.</p>
-    <div><span class="badge badge-teal">screener</span><span class="badge badge-purple">signal-detection</span><span class="badge badge-gray">ranking</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Open Interest Analysis</span>
-      <span class="price-badge">$0.01/call</span>
-    </div>
-    <div class="skill-id">open-interest-analysis</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Real-time OI with delta, percentile rank, and price-OI divergence detection. Spot positioning squeezes before they move price.</p>
-    <div><span class="badge badge-teal">open-interest</span><span class="badge badge-gray">funding-rate</span><span class="badge badge-purple">divergence</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Spread & Liquidity Analysis</span>
-      <span class="price-badge">$0.008/call</span>
-    </div>
-    <div class="skill-id">spread-analysis</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Bid-ask spread + slippage estimates at $10k / $50k / $100k / $500k notional.</p>
-    <div><span class="badge badge-gray">spread</span><span class="badge badge-teal">liquidity</span><span class="badge badge-purple">slippage</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Cross-Asset Correlation Matrix</span>
-      <span class="price-badge">$0.03/call</span>
-    </div>
-    <div class="skill-id">correlation-matrix</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">BTC-vs-alts correlation matrix with regime classification. Avoid accidentally holding correlated positions.</p>
-    <div><span class="badge badge-teal">correlation</span><span class="badge badge-purple">portfolio</span><span class="badge badge-gray">risk</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Full Intelligence Bundle</span>
-      <span class="price-badge">$0.04/call</span>
-    </div>
-    <div class="skill-id">intelligence-bundle</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Confluence + OI + funding + spread + regime in one response. 17% cheaper than calling endpoints separately.</p>
-    <div><span class="badge badge-teal">bundle</span><span class="badge badge-purple">comprehensive</span><span class="badge badge-gray">all-in-one</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Hyperliquid–Chainlink Basis</span>
-      <span class="price-badge">$0.015/call</span>
-    </div>
-    <div class="skill-id">basis-analysis</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">HL perpetual oracle vs Chainlink spot. Surfaces exchange premium/discount and flags mean-reversion setups.</p>
-    <div><span class="badge badge-teal">chainlink</span><span class="badge badge-purple">basis</span><span class="badge badge-gray">oracle</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">CEX–DEX Price Divergence</span>
-      <span class="price-badge">$0.015/call</span>
-    </div>
-    <div class="skill-id">cex-dex-divergence</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Coinbase spot vs DEX/Chainlink oracle. Catches venue dislocations and arb opportunities.</p>
-    <div><span class="badge badge-teal">arbitrage</span><span class="badge badge-purple">cross-venue</span><span class="badge badge-gray">coinbase</span></div>
-  </div>
-
-  <div class="skill-card">
-    <div class="skill-header">
-      <span style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">USDC Collateral Health Monitor</span>
-      <span class="price-badge">$0.008/call</span>
-    </div>
-    <div class="skill-id">collateral-health</div>
-    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 6px 0 6px;">Real-time USDC peg status via Chainlink Arbitrum oracle + sequencer health check.</p>
-    <div><span class="badge badge-teal">usdc</span><span class="badge badge-purple">stablecoin</span><span class="badge badge-gray">depeg</span></div>
-  </div>
-
-  <div style="margin-top: 16px; padding-top: 12px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-    <span style="font-size: 12px; color: var(--color-text-tertiary);">Source: <code>api.cerebruspulse.xyz/.well-known/agent-card.json</code></span>
-    <button onclick="sendPrompt('Run agentcard-disco on this agent card from api.cerebruspulse.xyz/.well-known/agent-card.json')" style="font-size: 12px;">Score with agentcard-disco ↗</button>
-  </div>
-</div>
+    <footer>
+      <div class="score-row">
+        <span class="score-label">source: api.cerebruspulse.xyz/.well-known/agent-card.json</span>
+      </div>
+      <div class="meter">
+        <span class="meter-fill" style="width: 88%;"></span>
+      </div>
+    </footer>
+  </article>
+</body>
+</html>
